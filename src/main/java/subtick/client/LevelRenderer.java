@@ -9,9 +9,7 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
-//#if MC >= 11900
-//$$ import org.joml.Quaternionf;
-//#else
+//#if MC < 11900
 import com.mojang.math.Quaternion;
 //#endif
 import com.mojang.math.Transformation;
@@ -23,6 +21,10 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.phys.Vec3;
+//#if MC >= 11900
+//$$ import org.joml.Matrix4fStack;
+//$$ import org.joml.Quaternionf;
+//#endif
 
 public class LevelRenderer
 {
@@ -32,7 +34,7 @@ public class LevelRenderer
   private static final HashSet<Quad> quads = new HashSet<>();
   private static final HashSet<Text> texts = new HashSet<>();
 
-  public static synchronized void render(PoseStack poseStack)
+  public static synchronized void render(PoseStack ps)
   {
     RenderSystem.setShader(GameRenderer::getPositionColorShader);
     RenderSystem.enableBlend();
@@ -52,15 +54,20 @@ public class LevelRenderer
     for(Quad quad : quads)
       quad.render(buffer, cpos.x, cpos.y, cpos.z);
     tesselator.end();
-
-    PoseStack ps = RenderSystem.getModelViewStack();
+    //#if MC < 12006
+    //$$ PoseStack poseStack = RenderSystem.getModelViewStack();
+    //#endif
     //#if MC >= 11900
     //$$ Quaternionf rot = camera.rotation();
     //#else
     Quaternion rot = camera.rotation();
     //#endif
     for(Text text : texts)
+      //#if MC < 12006
+      //$$ text.render(buffer, poseStack, rot, cpos.x, cpos.y, cpos.z);
+      //#else
       text.render(buffer, ps, rot, cpos.x, cpos.y, cpos.z);
+      //#endif
   }
 
   public static synchronized void clear()
@@ -131,15 +138,6 @@ public class LevelRenderer
     public void render(BufferBuilder buffer, double cx, double cy, double cz);
   }
 
-  // private static record LineBasic(double x, double y, double z, double X, double Y, double Z, Color4f color) implements Line
-  // {
-  //   public void render(BufferBuilder buffer, double cx, double cy, double cz)
-  //   {
-  //     buffer.vertex(x-cx, y-cy, z-cz).color(color.r, color.g, color.b, color.a).endVertex();
-  //     buffer.vertex(X-cx, Y-cy, Z-cz).color(color.r, color.g, color.b, color.a).endVertex();
-  //   }
-  // }
-
   private static record LineCuboid(double x, double y, double z, double X, double Y, double Z, Color4f color) implements Line
   {
     @Override
@@ -158,7 +156,6 @@ public class LevelRenderer
     {
       double x = this.x - cx, y = this.y - cy, z = this.z - cz;
       double X = this.X - cx, Y = this.Y - cy, Z = this.Z - cz;
-      // Bottom
       buffer.vertex(x, y, z).color(color.r, color.g, color.b, color.a).endVertex();
       buffer.vertex(X, y, z).color(color.r, color.g, color.b, color.a).endVertex();
 
@@ -170,7 +167,6 @@ public class LevelRenderer
 
       buffer.vertex(x, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
       buffer.vertex(x, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      // Middle
       buffer.vertex(x, y, z).color(color.r, color.g, color.b, color.a).endVertex();
       buffer.vertex(x, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
 
@@ -182,7 +178,6 @@ public class LevelRenderer
 
       buffer.vertex(X, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
       buffer.vertex(X, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      // Top
       buffer.vertex(x, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
       buffer.vertex(X, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
 
@@ -201,17 +196,6 @@ public class LevelRenderer
   {
     public void render(BufferBuilder buffer, double cx, double cy, double cz);
   }
-
-  // private static record QuadBasic(double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4, Color4f color) implements Quad
-  // {
-  //   public void render(BufferBuilder buffer, double cx, double cy, double cz)
-  //   {
-  //     buffer.vertex(x1-cx, y1-cy, z1-cz).color(color.r, color.g, color.b, color.a).endVertex();
-  //     buffer.vertex(x2-cx, y2-cy, z2-cz).color(color.r, color.g, color.b, color.a).endVertex();
-  //     buffer.vertex(x3-cx, y3-cy, z3-cz).color(color.r, color.g, color.b, color.a).endVertex();
-  //     buffer.vertex(x4-cx, y4-cy, z4-cz).color(color.r, color.g, color.b, color.a).endVertex();
-  //   }
-  // }
 
   private static record QuadCuboid(double x, double y, double z, double X, double Y, double Z, Color4f color) implements Quad
   {
@@ -294,15 +278,21 @@ public class LevelRenderer
     //#endif
     {
       poseStack.pushPose();
-      poseStack.translate(x - cx, y - cy, z - cz);
+      poseStack.translate((float)(x - cx), (float)(y - cy), (float)(z - cz));
       poseStack.mulPose(rotation);
       poseStack.scale(-0.07F, -0.07F, 0.07F);
+      //#if MC < 12006
       RenderSystem.applyModelViewMatrix();
-      MultiBufferSource.BufferSource immediate = MultiBufferSource.immediate(buffer);
+      //#endif
+      MultiBufferSource.BufferSource immediate = mc.renderBuffers().bufferSource();
+      //#if MC >= 12006
+      //$$ font.drawInBatch(text, -font.width(text)/2F, -font.lineHeight * 0.5F, color.intValue, false, poseStack.last().pose(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
+      //#else
       //#if MC >= 11904
       //$$ font.drawInBatch(text, -font.width(text)/2F, -font.lineHeight * 0.5F, color.intValue, false, Transformation.identity().getMatrix(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
       //#else
       font.drawInBatch(text, -font.width(text)/2F, -font.lineHeight * 0.5F, color.intValue, false, Transformation.identity().getMatrix(), immediate, true, 0x00000000, 0x00000000);
+      //#endif
       //#endif
       immediate.endBatch();
       poseStack.popPose();
@@ -331,27 +321,39 @@ public class LevelRenderer
     //#endif
     {
       poseStack.pushPose();
-      poseStack.translate(x - cx, y - cy, z - cz);
+      poseStack.translate((float)(x - cx), (float)(y - cy), (float)(z - cz));
       poseStack.mulPose(rotation);
       poseStack.scale(-0.07F, -0.07F, 0.08F);
+      //#if MC < 12006
       RenderSystem.applyModelViewMatrix();
+      //#endif
 
-      MultiBufferSource.BufferSource immediate = MultiBufferSource.immediate(buffer);
+      MultiBufferSource.BufferSource immediate = mc.renderBuffers().bufferSource();
+      //#if MC >= 12006
+      //$$ font.drawInBatch(index, -font.width(index)/2F, -font.lineHeight * 0.5F, color1, false, poseStack.last().pose(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
+      //#else
       //#if MC >= 11904
       //$$ font.drawInBatch(index, -font.width(index)/2F, -font.lineHeight * 0.5F, color1, false, Transformation.identity().getMatrix(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
       //#else
       font.drawInBatch(index, -font.width(index)/2F, -font.lineHeight * 0.5F, color1, false, Transformation.identity().getMatrix(), immediate, true, 0x00000000, 0x00000000);
       //#endif
+      //#endif
       immediate.endBatch();
 
       poseStack.translate(font.width(index)/2F, 0, 0);
       poseStack.scale(0.5F, 0.5F, 0.5F);
+      //#if MC < 12006
       RenderSystem.applyModelViewMatrix();
-      immediate = MultiBufferSource.immediate(buffer);
+      //#endif
+      immediate = mc.renderBuffers().bufferSource();
+      //#if MC >= 12006
+      //$$ font.drawInBatch(depth, -font.width(depth)/2F, font.lineHeight + 1, color2, false, poseStack.last().pose(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
+      //#else
       //#if MC >= 11904
       //$$ font.drawInBatch(depth, -font.width(depth)/2F, font.lineHeight + 1, color2, false, Transformation.identity().getMatrix(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
       //#else
       font.drawInBatch(depth, -font.width(depth)/2F, font.lineHeight + 1, color2, false, Transformation.identity().getMatrix(), immediate, true, 0x00000000, 0x00000000);
+      //#endif
       //#endif
       immediate.endBatch();
 

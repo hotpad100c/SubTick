@@ -17,7 +17,7 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 
-//#if MC < 12006
+//#if MC < 12003
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -25,19 +25,29 @@ import carpet.fakes.MinecraftClientInferface;
 import net.minecraft.client.Minecraft;
 import subtick.client.ClientTickHandler;
 //#endif
+//#if MC >= 12006
+//$$ import com.llamalad7.mixinextras.sugar.Local;
+//$$ import com.mojang.blaze3d.systems.RenderSystem;
+//#endif
 
 @Mixin(LevelRenderer.class)
 public class LevelRendererMixin
 {
   @Inject(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderSnowAndRain(Lnet/minecraft/client/renderer/LightTexture;FDDD)V", ordinal = 1))
-  private void onRenderWorldLastNormal(PoseStack poseStack, float delta, long time, boolean renderBlockOutline, Camera camera, GameRenderer renderer, LightTexture lightTexture, Matrix4f projMatrix, CallbackInfo ci)
+  private void onRenderWorldLastNormal(
+          //#if MC >= 12006
+          //$$ float f, long l, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci, @Local PoseStack poseStack
+          //#else
+          PoseStack poseStack, float delta, long time, boolean renderBlockOutline, Camera camera, GameRenderer renderer, LightTexture lightTexture, Matrix4f projMatrix, CallbackInfo ci
+          //#endif
+  )
   {
     subtick.client.LevelRenderer.render(poseStack);
   }
 
   // Everything below this point is yoinked from carpet
 
-  //#if MC < 12006
+  //#if MC < 12003
   @Shadow @Final private Minecraft minecraft;
   float initial = -1234.0f;
 

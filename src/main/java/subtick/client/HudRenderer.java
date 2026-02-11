@@ -23,7 +23,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
-//#if MC < 12006
+//#if MC < 12003
 import net.minecraft.network.chat.TextComponent;
 //#endif
 import subtick.QueueElement;
@@ -190,7 +190,11 @@ public class HudRenderer
   private static Component text(QueueElement element, int i, boolean depth)
   {
     return depth ?
-      Component.Serializer.fromJsonLenient(String.format("[\"#%d (\", {\"color\":\"%s\",\"text\":\"%d\"}, \"): %s\"]", i, color(i <= ClientTickHandler.queueIndex1 ? Configs.STEPPED_DEPTH : i <= ClientTickHandler.queueIndex2 ? Configs.STEPPING_DEPTH : i >= ClientTickHandler.queue.size() - ClientTickHandler.newQueueElementCount ? Configs.NEW_DEPTH : Configs.TO_STEP_DEPTH), element.depth(), element.label())) :
+      Component.Serializer.fromJsonLenient(String.format("[\"#%d (\", {\"color\":\"%s\",\"text\":\"%d\"}, \"): %s\"]", i, color(i <= ClientTickHandler.queueIndex1 ? Configs.STEPPED_DEPTH : i <= ClientTickHandler.queueIndex2 ? Configs.STEPPING_DEPTH : i >= ClientTickHandler.queue.size() - ClientTickHandler.newQueueElementCount ? Configs.NEW_DEPTH : Configs.TO_STEP_DEPTH), element.depth(), element.label())
+      //#if MC >= 12006
+              //$$ , Minecraft.getInstance().level.registryAccess()
+              //#endif
+      ) :
       //#if MC >= 11900
       //$$ Component.literal(String.format("#%d: %s", i, element.label()));
       //#else

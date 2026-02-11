@@ -12,6 +12,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import subtick.client.ClientTickHandler;
 
+@SuppressWarnings("all")
 @Mixin(ClientLevel.class)
 public class ClientLevelMixin
 {

@@ -15,7 +15,11 @@ import subtick.ITickHandler;
 public class ServerNetworkHandlerMixin
 {
   @Inject(method = "onHello", at = @At("TAIL"))
+  //#if MC >= 12003
+  //$$ private static void onHello(ServerPlayer player, String version, CallbackInfo ci)
+  //#else
   private static void onHello(ServerPlayer player, FriendlyByteBuf data, CallbackInfo ci)
+          //#endif
   {
     ITickHandler tickHandler = ((ITickHandleable)player.getLevel().getServer()).tickHandler();
     subtick.network.ServerNetworkHandler.sendFrozen(player, tickHandler.frozen(), tickHandler.currentPhase());

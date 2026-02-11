@@ -7,6 +7,11 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.level.ServerLevel;
 import subtick.network.ServerNetworkHandler;
 import subtick.util.Translations;
+//#if MC >= 12003
+//$$ import net.minecraft.network.protocol.game.ClientboundTickingStatePacket;
+//$$ import net.minecraft.network.protocol.game.ClientboundTickingStepPacket;
+//$$ import net.minecraft.server.ServerTickRateManager;
+//#endif
 
 public class TickHandler implements ITickHandler
 {
@@ -30,6 +35,9 @@ public class TickHandler implements ITickHandler
 
   private TickPhase targetPhase = new TickPhase(0, 0);
   private TickPhase currentPhase = new TickPhase(0, 0);
+  //#if MC >= 12003
+  //$$ private ServerTickRateManager serverTickRateManager;
+  //#endif
 
   @Override
   public boolean frozen(){return state == State.FROZEN;}
@@ -168,6 +176,11 @@ public class TickHandler implements ITickHandler
     TickPhase tickPhase = new TickPhase(c.getLevel(), phase);
     targetPhase = tickPhase;
     ServerNetworkHandler.sendFrozen(c.getLevel(), tickPhase);
+    //#if MC >= 12003
+    //$$ if (serverTickRateManager == null)serverTickRateManager = new ServerTickRateManager(c.getServer());
+    //$$ serverTickRateManager.setFrozen(true);
+    //$$ c.getServer().getPlayerList().broadcastAll(ClientboundTickingStatePacket.from(serverTickRateManager));
+    //#endif
     Translations.m(c, "tickCommand.freeze.success", tickPhase);
     return Command.SINGLE_SUCCESS;
   }
@@ -175,6 +188,11 @@ public class TickHandler implements ITickHandler
   @Override
   public int unfreeze(CommandSourceStack c)
   {
+    //#if MC >= 12003
+    //$$ if (serverTickRateManager == null)serverTickRateManager = new ServerTickRateManager(c.getServer());
+    //$$ serverTickRateManager.setFrozen(false);
+    //$$ c.getServer().getPlayerList().broadcastAll(ClientboundTickingStatePacket.from(serverTickRateManager));
+    //#endif
     switch(state)
     {
       case FROZEN -> {
@@ -264,6 +282,9 @@ public class TickHandler implements ITickHandler
     if(ticks != 0 || !tickPhase.equals(currentPhase))
     {
       queues.scheduleEnd();
+      //#if MC >= 12006
+      //$$ serverTickRateManager.stepGameIfPaused(ticks);
+      //#endif
       ServerNetworkHandler.sendTickStep(c.getLevel(), ticks, tickPhase);
     }
     return Command.SINGLE_SUCCESS;

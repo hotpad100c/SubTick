@@ -45,6 +45,7 @@ import java.util.function.Consumer;
 // entity management
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 
+@SuppressWarnings("all")
 @Mixin(ServerLevel.class)
 public class ServerLevelMixin
 {

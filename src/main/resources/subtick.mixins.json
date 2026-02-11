@@ -6,17 +6,15 @@
   "mixins": [
     "MinecraftServerMixin",
     "ServerLevelMixin",
-
+    "TickCommandMixin",
     "carpet.ServerNetworkHandlerAccessor",
     "carpet.ServerNetworkHandlerMixin",
     "carpet.TickCommandMixin",
-
     "lithium.LithiumServerTickSchedulerAccessor"
   ],
   "client": [
-    "client.ClientNetworkHandlerMixin",
-
     "client.ClientLevelMixin",
+    "client.ClientNetworkHandlerMixin",
     "client.EntityMixin",
     "client.GuiMixin",
     "client.LevelRendererMixin"

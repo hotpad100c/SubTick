@@ -31,6 +31,9 @@ repositories {
   maven {
     url 'https://maven.terraformersmc.com/releases'
   }
+  maven {
+    url "https://maven.nucleoid.xyz/"
+  }
 }
 
 dependencies {
@@ -48,6 +51,9 @@ dependencies {
   modImplementation "maven.modrinth:lithium:${project.lithium_version}"
   modImplementation "fi.dy.masa.malilib:malilib-fabric-${project.malilib_version}"
   modImplementation "com.terraformersmc:modmenu:${project.mod_menu_version}"
+  if (mcVersion >= 12006) {
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+  }
 }
 
 JavaVersion JAVA_COMPATIBILITY

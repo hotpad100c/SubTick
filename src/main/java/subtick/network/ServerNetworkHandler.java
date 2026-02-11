@@ -3,7 +3,7 @@ package subtick.network;
 import java.util.ArrayList;
 
 import carpet.CarpetSettings;
-//#if MC >= 12006
+//#if MC >= 12003
 //$$ import net.minecraft.network.protocol.game.ClientboundTickingStepPacket;
 //#else
 import carpet.helpers.TickSpeed;
@@ -25,48 +25,27 @@ import subtick.TickPhase;
 import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
 import subtick.util.Translations;
 
-//#if MC >= 12006
-//$$ import net.minecraft.resources.ResourceLocation;
-//$$ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-//$$ import net.minecraft.network.codec.StreamCodec;
-//#endif
 
 public class ServerNetworkHandler
 {
-  //#if MC >= 12006
-  //$$ public static final ResourceLocation SUBTICK_CHANNEL = ResourceLocation.fromNamespaceAndPath("subtick", "hello");
-  //$$ private record SubtickPayload(CompoundTag data) implements CustomPacketPayload
-  //$$ {
-  //$$   public static final StreamCodec<FriendlyByteBuf, SubtickPayload> STREAM_CODEC = CustomPacketPayload.codec(SubtickPayload::write, SubtickPayload::new);
-  //$$   public static final Type<SubtickPayload> TYPE = new CustomPacketPayload.type<>(SUBTICK_CHANNEL);
-  //$$ 
-  //$$   public SubtickPayload(FriendlyByteBuf input)
-  //$$   {
-  //$$     this(input.readNbt());
-  //$$   }
-  //$$ 
-  //$$   public void write(FriendlyByteBuf output)
-  //$$   {
-  //$$     output.writeNbt(data);
-  //$$   }
-  //$$ 
-  //$$   @Override public Type<SubtickPayload> type()
-  //$$   {
-  //$$     return TYPE;
-  //$$   }
-  //$$ }
-  //#endif
-
   private static boolean tryClient(ServerLevel level, CompoundTag tag)
   {
     if(level.server.isDedicatedServer())
       return false;
-
+    //#if MC < 12003
     FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
     packetBuf.writeVarInt(CarpetClient.DATA);
     packetBuf.writeNbt(tag);
+    //#endif
     Minecraft minecraft = Minecraft.getInstance();
+    //#if MC >= 12003
+    //$$ if (minecraft.player != null) {
+    //$$    ClientNetworkHandler.onServerData(tag, minecraft.player);
+    //$$    return true;
+    //$$  }
+    //#else
     ClientNetworkHandler.handleData(packetBuf, minecraft.player);
+    //#endif
     return true;
   }
 
@@ -76,13 +55,19 @@ public class ServerNetworkHandler
     if(tryClient(level, tag))
       return;
 
+    //#if MC < 12003
     FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
     packetBuf.writeVarInt(CarpetClient.DATA);
     packetBuf.writeNbt(tag);
+    //#endif
 
     try
     {
+      //#if MC >= 12003
+      //$$ player.connection.send(new ClientboundCustomPayloadPacket(new CarpetClient.CarpetPayload(tag)));
+      //#else
       player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
+      //#endif
     }
     catch(IllegalArgumentException e)
     {
@@ -96,13 +81,19 @@ public class ServerNetworkHandler
     if(tryClient(level, tag))
       return;
 
+    //#if MC < 12003
     FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
     packetBuf.writeVarInt(CarpetClient.DATA);
     packetBuf.writeNbt(tag);
+    //#endif
 
     try
     {
+      //#if MC >= 12003
+      //$$ player.connection.send(new ClientboundCustomPayloadPacket(new CarpetClient.CarpetPayload(tag)));
+      //#else
       player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
+      //#endif
     }
     catch(IllegalArgumentException e)
     {}
@@ -189,6 +180,7 @@ public class ServerNetworkHandler
     tickingState.put("dims", listTag);
     tag.put("TickingState", tickingState);
     sendNbt(player, tag);
+
   }
 
   public static void sendUnfrozen(ServerLevel level)
@@ -213,7 +205,7 @@ public class ServerNetworkHandler
 
     if(ticks != 0)
     {
-      //#if MC >= 12006
+      //#if MC >= 12003
       //$$ level.getServer().getPlayerList().broadcastAll(new ClientboundTickingStepPacket(ticks));
       //#else
       CompoundTag tag = new CompoundTag();

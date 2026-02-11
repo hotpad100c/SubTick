@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-//#if MC < 12006
+//#if MC < 12003
 import carpet.helpers.TickSpeed;
 //#endif
 import net.minecraft.client.Minecraft;
@@ -157,7 +157,7 @@ public class ClientTickHandler
 
   public static void scheduleTickStep(int ticks)
   {
-    //#if MC >= 12006
+    //#if MC >= 12003
     //$$ if(ticks <= 0)
     //#else
     if(ticks <= TickSpeed.PLAYER_GRACE)
@@ -181,7 +181,7 @@ public class ClientTickHandler
 
   public static void onTick(ClientLevel level)
   {
-    //#if MC >= 12006
+    //#if MC >= 12003
     //$$ if(stepping && -- remaining_ticks <= 0)
     //#else
     if(stepping && -- remaining_ticks <= TickSpeed.PLAYER_GRACE)
