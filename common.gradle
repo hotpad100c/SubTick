@@ -48,7 +48,11 @@ dependencies {
   // mods
   modImplementation "carpet:fabric-carpet:${project.carpet_core_version}"
   modImplementation "com.g4mesoft:g4mespeed:${project.g4mespeed_version}"
-  modImplementation "maven.modrinth:lithium:${project.lithium_version}"
+  if (mcVersion >= 12101) {
+    modImplementation "${project.lithium_version}"
+  } else {
+    modImplementation "maven.modrinth:lithium:${project.lithium_version}"
+  }
   modImplementation "fi.dy.masa.malilib:malilib-fabric-${project.malilib_version}"
   modImplementation "com.terraformersmc:modmenu:${project.mod_menu_version}"
   if (mcVersion >= 12006) {
@@ -94,14 +98,28 @@ archivesBaseName = project.archives_base_name + '-mc' + project.minecraft_versio
 processResources {
   inputs.property "version", fullModVersion
 
-  filesMatching("fabric.mod.json") {
-    def valueMap = [
-      "version": fullModVersion,
-      "carpet_dependency": project.carpet_dependency,
-      "minecraft_dependency": project.minecraft_dependency,
-    ]
-    expand valueMap
+  if (mcVersion == 12101) {
+
+    filesMatching("fabric.mod.json") {
+      def valueMap = [
+              "version"             : fullModVersion,
+              "carpet_dependency"   : project.carpet_dependency,
+              "minecraft_dependency": project.minecraft_dependency,
+      ]
+      expand valueMap
+    }
+  } else {
+    filesMatching("fabric.mod.json") {
+      def valueMap = [
+              "version"             : fullModVersion,
+              "carpet_dependency"   : project.carpet_dependency,
+              "minecraft_dependency": project.minecraft_dependency,
+              "lithium_dependency"   : ">=1.13.1",
+      ]
+      expand valueMap
+    }
   }
+
 
   filesMatching("subtick.mixins.json") {
     expand "compatibility_level": "JAVA_${JAVA_COMPATIBILITY.ordinal() + 1}"

@@ -7,7 +7,9 @@ import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-
+//#if MC >= 12101
+//$$ import net.minecraft.client.DeltaTracker;
+//#endif
 import net.minecraft.client.gui.Gui;
 //#if MC >= 12000
 //$$ import net.minecraft.client.gui.GuiGraphics;
@@ -19,7 +21,11 @@ public class GuiMixin
 {
   //#if MC >= 12000
   //$$ @Inject(method = "render", at = @At("RETURN"))
+  //#if MC >= 12101
+  //$$ private void renderHud(GuiGraphics guiGraphics,DeltaTracker deltaTracker, CallbackInfo ci)
+  //#else
   //$$ private void renderHud(GuiGraphics guiGraphics, float partialTick, CallbackInfo ci)
+  //#endif
   //$$ {
   //$$   HudRenderer.render(guiGraphics);
   //$$ }
