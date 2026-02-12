@@ -26,29 +26,20 @@ public class TickCommandMixin
 {
     @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/CommandDispatcher;register(Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;)Lcom/mojang/brigadier/tree/LiteralCommandNode;"), index = 0)
     private static LiteralArgumentBuilder<CommandSourceStack> registerSubtickCommands(LiteralArgumentBuilder<CommandSourceStack> builder) {
-        if (!builder.getLiteral().equals("tick")) return builder;
-        var step = Commands.literal("step")
-                .then(Commands.argument("time", TimeArgument.time(1))
+        builder.then(Commands.literal("step").then(Commands.argument("time", TimeArgument.time(1))
                         .then(Commands.argument("phase", StringArgumentType.word())
                                 .suggests((c, b) -> SharedSuggestionProvider.suggest(TickPhase.commandSuggestions, b))
-                                .executes((c) -> ITickHandler.get(c).step(
-                                        c.getSource(),
-                                        IntegerArgumentType.getInteger(c, "time"),
-                                        TickPhase.byCommandKey(StringArgumentType.getString(c, "phase"))
-                                ))
-                        )
-                );
-
-        var vanilla = Commands.literal("vanilla")
+                                .executes((c) -> ITickHandler.get(c).step(c.getSource(), IntegerArgumentType.getInteger(c, "time"), TickPhase.byCommandKey(StringArgumentType.getString(c, "phase"))))
+                        )));
+        builder.then(Commands.literal("vanilla")
                 .then(Commands.literal("freeze")
                         .executes((c) -> subtick$setVanillaFreeze(c.getSource(), true)))
                 .then(Commands.literal("unfreeze")
-                        .executes((c) -> subtick$setVanillaFreeze(c.getSource(), false)));
-
-        builder.then(step);
-        builder.then(vanilla);
+                        .executes((c) -> subtick$setVanillaFreeze(c.getSource(), false))));
         return builder;
     }
+
+    @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/CommandDispatcher;register(Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;)Lcom/mojang/brigadier/tree/LiteralCommandNode;"), index = 1)
 
     @Unique
     private static int subtick$setVanillaFreeze(CommandSourceStack source, boolean freeze) {

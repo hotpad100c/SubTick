@@ -1,5 +1,7 @@
 package subtick.mixins;
 
+import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -40,12 +42,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 // entity
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.entity.EntityTickList;
-import java.util.function.Consumer;
 // entity management
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 
-@SuppressWarnings("all")
 @Mixin(ServerLevel.class)
 public class ServerLevelMixin
 {
@@ -158,6 +157,21 @@ public class ServerLevelMixin
   private boolean blockEvent(ServerLevel self)
   {
     return tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.BLOCK_EVENT);
+  }
+
+  @Inject(method = "method_31420", at = @At(value = "HEAD"), cancellable = true)
+  private void entity(ProfilerFiller profilerFiller, Entity entity, CallbackInfo ci)
+  {
+    if (!tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.BLOCK_EVENT) && !(entity instanceof Player)) {
+      if (!isPlayerControlled(entity)) {
+        ci.cancel();
+      }
+    }
+  }
+
+  private boolean isPlayerControlled(Entity entity) {
+    Entity controller = entity.getControllingPassenger();
+    return controller instanceof Player;
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;tickBlockEntities()V"))
