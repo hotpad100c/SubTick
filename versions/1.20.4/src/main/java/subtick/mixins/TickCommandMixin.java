@@ -39,8 +39,6 @@ public class TickCommandMixin
         return builder;
     }
 
-    @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/CommandDispatcher;register(Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;)Lcom/mojang/brigadier/tree/LiteralCommandNode;"), index = 1)
-
     @Unique
     private static int subtick$setVanillaFreeze(CommandSourceStack source, boolean freeze) {
         ServerTickRateManager manager = source.getServer().tickRateManager();
