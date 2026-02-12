@@ -8,8 +8,11 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.TimeArgument;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.ServerTickRateManager;
 import net.minecraft.server.commands.TickCommand;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -18,7 +21,7 @@ import subtick.ITickHandler;
 import subtick.Settings;
 import subtick.TickPhase;
 
-@Mixin(value = TickCommand.class, priority = 980)
+@Mixin(value = TickCommand.class, priority = 990)
 public class TickCommandMixin
 {
     @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/CommandDispatcher;register(Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;)Lcom/mojang/brigadier/tree/LiteralCommandNode;"), index = 0)
@@ -35,8 +38,32 @@ public class TickCommandMixin
                                 ))
                         )
                 );
+
+        var vanilla = Commands.literal("vanilla")
+                .then(Commands.literal("freeze")
+                        .executes((c) -> subtick$setVanillaFreeze(c.getSource(), true)))
+                .then(Commands.literal("unfreeze")
+                        .executes((c) -> subtick$setVanillaFreeze(c.getSource(), false)));
+
         builder.then(step);
+        builder.then(vanilla);
         return builder;
+    }
+
+    @Unique
+    private static int subtick$setVanillaFreeze(CommandSourceStack source, boolean freeze) {
+        ServerTickRateManager manager = source.getServer().tickRateManager();
+        if (freeze && ITickHandler.get(source).frozen()) {
+            ITickHandler.get(source).unfreeze(source);
+        }
+
+        if (manager.isFrozen() == freeze) {
+            source.sendFailure(Component.translatable(freeze ? "commands.tick.status.frozen" : "commands.tick.status.unfrozen"));
+            return 0;
+        }
+        manager.setFrozen(freeze);
+        source.sendSuccess(() -> Component.translatable(freeze ? "commands.tick.freeze.success" : "commands.tick.unfreeze.success"), true);
+        return freeze ? 1 : 0;
     }
 
     @ModifyArg(
@@ -62,10 +89,15 @@ public class TickCommandMixin
     @Inject(method = "setFreeze", at = @At("HEAD"), cancellable = true)
     private static void setFreeze(CommandSourceStack c, boolean freeze, CallbackInfoReturnable<Integer> cir) throws CommandSyntaxException
     {
-        if(freeze)
+        if(freeze) {
+            ServerTickRateManager manager = c.getServer().tickRateManager();
+            if (manager.isFrozen()) {
+                manager.setFrozen(false);
+            }
             cir.setReturnValue(ITickHandler.get(c).freeze(c, TickPhase.byCommandKey(Settings.subtickDefaultPhase)));
-        else
+        } else {
             cir.setReturnValue(ITickHandler.get(c).unfreeze(c));
+        }
     }
 
     @Inject(method = "step", at = @At("HEAD"), cancellable = true)
