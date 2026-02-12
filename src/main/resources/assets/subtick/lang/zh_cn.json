@@ -42,5 +42,7 @@
   "subtick.feedback.queueCommand.success.single": "已执行 {n} 次 {queue}",
   "subtick.feedback.queueCommand.success.single.exhausted": "已执行 {n} 次 {queue}（队列已完成）",
   "subtick.feedback.queueCommand.success.multiple": "已执行 {n} 次 {queues}",
-  "subtick.feedback.queueCommand.success.multiple.exhausted": "已执行 {n} 次 {queues}（队列已完成）"
+  "subtick.feedback.queueCommand.success.multiple.exhausted": "已执行 {n} 次 {queues}（队列已完成）",
+  "subtick.error.subtick_frozen": "无法开启原版冻结：Subtick 模式已处于冻结状态。请先解除 Subtick 冻结。",
+  "subtick.error.vanilla_frozen": "无法开启 Subtick 冻结：原版游戏已处于冻结状态。请先解除原版冻结。"
 }

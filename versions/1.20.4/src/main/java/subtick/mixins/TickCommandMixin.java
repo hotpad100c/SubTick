@@ -20,6 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import subtick.ITickHandler;
 import subtick.Settings;
 import subtick.TickPhase;
+import subtick.util.Translations;
 
 @Mixin(value = TickCommand.class, priority = 990)
 public class TickCommandMixin
@@ -27,10 +28,10 @@ public class TickCommandMixin
     @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/CommandDispatcher;register(Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;)Lcom/mojang/brigadier/tree/LiteralCommandNode;"), index = 0)
     private static LiteralArgumentBuilder<CommandSourceStack> registerSubtickCommands(LiteralArgumentBuilder<CommandSourceStack> builder) {
         builder.then(Commands.literal("step").then(Commands.argument("time", TimeArgument.time(1))
-                        .then(Commands.argument("phase", StringArgumentType.word())
-                                .suggests((c, b) -> SharedSuggestionProvider.suggest(TickPhase.commandSuggestions, b))
-                                .executes((c) -> ITickHandler.get(c).step(c.getSource(), IntegerArgumentType.getInteger(c, "time"), TickPhase.byCommandKey(StringArgumentType.getString(c, "phase"))))
-                        )));
+                .then(Commands.argument("phase", StringArgumentType.word())
+                        .suggests((c, b) -> SharedSuggestionProvider.suggest(TickPhase.commandSuggestions, b))
+                        .executes((c) -> ITickHandler.get(c).step(c.getSource(), IntegerArgumentType.getInteger(c, "time"), TickPhase.byCommandKey(StringArgumentType.getString(c, "phase"))))
+                )));
         builder.then(Commands.literal("vanilla")
                 .then(Commands.literal("freeze")
                         .executes((c) -> subtick$setVanillaFreeze(c.getSource(), true)))
@@ -42,17 +43,31 @@ public class TickCommandMixin
     @Unique
     private static int subtick$setVanillaFreeze(CommandSourceStack source, boolean freeze) {
         ServerTickRateManager manager = source.getServer().tickRateManager();
-        if (freeze && ITickHandler.get(source).frozen()) {
-            ITickHandler.get(source).unfreeze(source);
-        }
 
-        if (manager.isFrozen() == freeze) {
-            source.sendFailure(Component.translatable(freeze ? "commands.tick.status.frozen" : "commands.tick.status.unfrozen"));
-            return 0;
+        if (freeze) {
+            if (ITickHandler.get(source).frozen()) {
+                source.sendFailure(Component.literal(Translations.tr("subtick.error.subtick_frozen")));
+                return 0;
+            }
+            if (manager.isFrozen()) {
+                source.sendFailure(Component.translatable("commands.tick.status.frozen"));
+                return 0;
+            }
+            manager.setFrozen(true);
+            source.sendSuccess(() -> Component.translatable("commands.tick.status.frozen"), true);
+            return 1;
+        } else {
+            int result = 0;
+            if (manager.isFrozen()) {
+                manager.setFrozen(false);
+                source.sendSuccess(() -> Component.translatable("commands.tick.status.running"), true);
+                result = 1;
+            }
+            if (ITickHandler.get(source).frozen()) {
+                result = ITickHandler.get(source).unfreeze(source);
+            }
+            return result;
         }
-        manager.setFrozen(freeze);
-        source.sendSuccess(() -> Component.translatable(freeze ? "commands.tick.freeze.success" : "commands.tick.unfreeze.success"), true);
-        return freeze ? 1 : 0;
     }
 
     @ModifyArg(
@@ -78,20 +93,34 @@ public class TickCommandMixin
     @Inject(method = "setFreeze", at = @At("HEAD"), cancellable = true)
     private static void setFreeze(CommandSourceStack c, boolean freeze, CallbackInfoReturnable<Integer> cir) throws CommandSyntaxException
     {
+        ServerTickRateManager manager = c.getServer().tickRateManager();
         if(freeze) {
-            ServerTickRateManager manager = c.getServer().tickRateManager();
             if (manager.isFrozen()) {
-                manager.setFrozen(false);
+                c.sendFailure(Component.literal(Translations.tr("subtick.error.vanilla_frozen")));
+                cir.setReturnValue(0);
+                return;
             }
             cir.setReturnValue(ITickHandler.get(c).freeze(c, TickPhase.byCommandKey(Settings.subtickDefaultPhase)));
         } else {
-            cir.setReturnValue(ITickHandler.get(c).unfreeze(c));
+            int result = 0;
+            if (manager.isFrozen()) {
+                manager.setFrozen(false);
+                c.sendSuccess(() -> Component.translatable("commands.tick.status.running"), true);
+                result = 1;
+            }
+            if (ITickHandler.get(c).frozen()) {
+                result = ITickHandler.get(c).unfreeze(c);
+            }
+            cir.setReturnValue(result);
         }
     }
 
     @Inject(method = "step", at = @At("HEAD"), cancellable = true)
     private static void step(CommandSourceStack c, int ticks, CallbackInfoReturnable<Integer> cir) throws CommandSyntaxException
     {
+        if (c.getServer().tickRateManager().isFrozen()) {
+            return;
+        }
         cir.setReturnValue(ITickHandler.get(c).step(c, ticks, TickPhase.byCommandKey(Settings.subtickDefaultPhase)));
     }
 }

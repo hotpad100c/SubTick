@@ -55,6 +55,7 @@ public class SubTick implements CarpetExtension, ModInitializer
   //#else
   public void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {
   //#endif
+    TickCommand.register(dispatcher);
     PhaseCommand.register(dispatcher);
     QueueCommand.register(dispatcher);
   }

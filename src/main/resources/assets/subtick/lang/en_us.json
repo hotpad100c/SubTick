@@ -68,5 +68,7 @@
   "subtick.client.align.right": "Right",
   "subtick.client.align.bottom_left": "Bottom Left",
   "subtick.client.align.bottom": "Bottom",
-  "subtick.client.align.bottom_right": "Bottom Right"
+  "subtick.client.align.bottom_right": "Bottom Right",
+  "subtick.error.subtick_frozen": "Cannot enable vanilla freeze: Subtick mode is already frozen. Unfreeze Subtick first.",
+  "subtick.error.vanilla_frozen": "Cannot enable Subtick freeze: Vanilla game is already frozen. Unfreeze vanilla first."
 }
