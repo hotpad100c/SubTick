@@ -72,9 +72,12 @@ public class BlockEventQueue extends TickingQueue
       for(int i = 0; i < size; i ++)
       {
         BlockEventData blockEvent = level.blockEvents.removeFirst();
+        boolean mirrorSuccess = false;
         // Removing the first queue element is important to allow multiple block events in the same block (at different depth).
-        if(!queue.isEmpty())
+        if(!queue.isEmpty()) {
           spentQueue.add(queue.removeFirst());
+          mirrorSuccess = true;
+        }
         //#if MC >= 11800
         //$$ if(level.shouldTickBlocksAt(ChunkPos.asLong(blockEvent.pos())))
         //$$ {
@@ -82,7 +85,9 @@ public class BlockEventQueue extends TickingQueue
           if(!level.doBlockEvent(blockEvent))
           {
             //queue.remove(new QueueElement(blockEvent, depth-1));
-            spentQueue.remove(spentQueue.size() - 1);
+            if(mirrorSuccess && !spentQueue.isEmpty()) {
+              spentQueue.remove(spentQueue.size() - 1);
+            }
             continue;
           }
 
