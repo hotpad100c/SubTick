@@ -18,7 +18,7 @@ import subtick.ITickHandler;
 import subtick.Settings;
 import subtick.TickPhase;
 
-@Mixin(TickCommand.class)
+@Mixin(value = TickCommand.class, priority = 980)
 public class TickCommandMixin
 {
     @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/CommandDispatcher;register(Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;)Lcom/mojang/brigadier/tree/LiteralCommandNode;"), index = 0)

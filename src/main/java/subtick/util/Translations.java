@@ -52,7 +52,13 @@ public class Translations
   //$$ // compat
   //$$ public static String tr(String key)
   //$$ {
-  //$$   return carpet.utils.Translations.tr(key);
+  //$$   String translated = carpet.utils.Translations.tr(key);
+  //$$   if (translated.equals(key))
+  //$$   {
+  //$$       Map<String, String> en = getTranslationFromResourcePath("en_us");
+  //$$       return en.getOrDefault(key, key);
+  //$$   }
+  //$$   return translated;
   //$$ }
   //#else
   private final static Map<String, Map<String, String>> translations = new HashMap<>();
@@ -63,8 +69,8 @@ public class Translations
     update("en_us");
     update(lang);
     return translations.containsKey(lang) ?
-      Map.copyOf(translations.get(lang)) :
-      new HashMap<String, String>();
+            Map.copyOf(translations.get(lang)) :
+            new HashMap<>();
   }
 
   public static void update(String lang)
@@ -97,8 +103,18 @@ public class Translations
   public static String tr(String key)
   {
     String lang = CarpetSettings.language.equals("none") ? "en_us" : CarpetSettings.language;
-    return translations.containsKey(lang) ?
-      translations.get(lang).getOrDefault(key, key) : key;
+    if (!translations.containsKey(lang))
+      update(lang);
+
+    Map<String, String> current = translations.get(lang);
+    if (current != null && current.containsKey(key))
+      return current.get(key);
+
+    if (!translations.containsKey("en_us"))
+      update("en_us");
+
+    Map<String, String> en = translations.get("en_us");
+    return en != null ? en.getOrDefault(key, key) : key;
   }
   //#endif
 
@@ -200,6 +216,6 @@ public class Translations
   {
     String path = phase.getPath();
     return Settings.subtickDimensionFormat + " " + path.substring(0, 1).toUpperCase() + path.substring(1)
-      + "\0^" + Settings.subtickDimensionFormat + " " + path;
+            + "\0^" + Settings.subtickDimensionFormat + " " + path;
   }
 }

@@ -160,12 +160,6 @@ public class ServerLevelMixin
     return tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.BLOCK_EVENT);
   }
 
-  @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/entity/EntityTickList;forEach(Ljava/util/function/Consumer;)V"))
-  private boolean entity(EntityTickList self, Consumer<Entity> action)
-  {
-    return tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.ENTITY);
-  }
-
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;tickBlockEntities()V"))
   private boolean blockEntity(ServerLevel self)
   {

@@ -4,12 +4,14 @@
   "package": "subtick.mixins",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "EntityTickListMixin",
     "MinecraftServerMixin",
     "ServerLevelMixin",
     "TickCommandMixin",
     "carpet.ServerNetworkHandlerAccessor",
     "carpet.ServerNetworkHandlerMixin",
     "carpet.TickCommandMixin",
+    "EntityAccessor",
     "lithium.LithiumServerTickSchedulerAccessor"
   ],
   "client": [
