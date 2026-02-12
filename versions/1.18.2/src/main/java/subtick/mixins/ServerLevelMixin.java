@@ -112,9 +112,13 @@ public class ServerLevelMixin
   {
     return tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.FLUID_TICK);
   }
-
+  //#if MC >= 12105
+  //$$ @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/raid/Raids;tick(Lnet/minecraft/server/level/ServerLevel;)V"))
+  //$$ private boolean blockTick(Raids instance, ServerLevel level)
+  //#else
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/raid/Raids;tick()V"))
   private boolean blockTick(Raids self)
+  //#endif
   {
     return tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.RAID);
   }

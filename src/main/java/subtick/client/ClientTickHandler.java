@@ -37,7 +37,11 @@ public class ClientTickHandler
 
   public static void setFreeze(CompoundTag tag)
   {
+    //#if MC >= 12105
+    //$$ if(frozen = tag.getBoolean("is_paused").get())
+    //#else
     if(frozen = tag.getBoolean("is_paused"))
+    //#endif
     {
       try
       {
@@ -45,7 +49,11 @@ public class ClientTickHandler
         ListTag listTag = (ListTag)tag.get("dims");
         dimensions.clear();
         for(Tag element : listTag)
+          //#if MC >= 12105
+          //$$ dimensions.add(((CompoundTag)element).getString("d").get());
+          //#else
           dimensions.add(((CompoundTag)element).getString("d"));
+          //#endif
       }
       catch(Exception e)
       {
@@ -81,7 +89,11 @@ public class ClientTickHandler
     tag.forEach((Tag t) ->
     {
       CompoundTag t1 = (CompoundTag)t;
+      //#if MC >= 12105
+      //$$ queue.add(new QueueElement(t1.getString("s").get(), t1.getInt("x").get(), t1.getInt("y").get(), t1.getInt("z").get(), t1.getInt("d").get()));
+      //#else
       queue.add(new QueueElement(t1.getString("s"), t1.getInt("x"), t1.getInt("y"), t1.getInt("z"), t1.getInt("d")));
+      //#endif
     });
     newQueueElementCount = Math.max(0, queue.size() - l);
   }
@@ -89,8 +101,13 @@ public class ClientTickHandler
   public static synchronized void queueStep(CompoundTag tag)
   {
     setQueue((ListTag)tag.get("queue"));
+    //#if MC >= 12105
+    //$$ int steps = tag.getInt("steps").get();
+    //$$ newQueueElementCount = tag.getInt("newElements").get();
+    //#else
     int steps = tag.getInt("steps");
     newQueueElementCount = tag.getInt("newElements");
+    //#endif
     queueIndex1 = queueIndex2;
     queueIndex2 += steps;
     // out of bounds protection

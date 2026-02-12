@@ -1,29 +1,43 @@
 plugins {
   id 'maven-publish'
-  id 'fabric-loom' version '1.9-SNAPSHOT' apply false
-  id 'com.replaymod.preprocess' version '20c7ec554a'
+  id 'fabric-loom' version '1.15-SNAPSHOT' apply false
+  id 'com.replaymod.preprocess' version 'c5abb4fb12'
+  id 'me.fallenbreath.yamlang' version '1.5.0' apply false
 }
 
 preprocess {
+  strictExtraMappings = false
   // def mc1165 = createNode('1.16.5', 1_16_05, 'yarn')
-  def mc1171 = createNode('1.17.1', 1_17_01, 'yarn')
-  def mc1182 = createNode('1.18.2', 1_18_02, 'yarn')
-  def mc1193 = createNode('1.19.3', 1_19_03, 'yarn')
-  def mc1194 = createNode('1.19.4', 1_19_04, 'yarn')
-  def mc1201 = createNode('1.20.1', 1_20_01, 'yarn')
-  def mc1204 = createNode('1.20.4', 1_20_04, 'yarn')
-  def mc1206 = createNode('1.20.6', 1_20_06, 'yarn')
-  def mc1211 = createNode('1.21.1', 1_21_01, 'yarn')
+  def mc11701 = createNode('1.17.1', 1_17_01, 'yarn')
+  def mc11802 = createNode('1.18.2', 1_18_02, 'yarn')
+  def mc11903 = createNode('1.19.3', 1_19_03, 'yarn')
+  def mc11904 = createNode('1.19.4', 1_19_04, 'yarn')
+  def mc12001 = createNode('1.20.1', 1_20_01, 'yarn')
+  def mc12004 = createNode('1.20.4', 1_20_04, 'yarn')
+  def mc12006 = createNode('1.20.6', 1_20_06, 'yarn')
+  def mc12101 = createNode('1.21.1', 1_21_01, 'yarn')
+  def mc12103 = createNode('1.21.3', 1_21_03, 'yarn')
+  def mc12104 = createNode('1.21.4', 1_21_04, 'yarn')
+  def mc12105 = createNode('1.21.5', 1_21_05, 'yarn')
+  def mc12108 = createNode('1.21.8', 1_21_08, 'yarn')
 
   // mc1165.link(mc1171, file('versions/mapping-1.16-1.17.txt'))
-  mc1171.link(mc1182, null)
-  mc1182.link(mc1193, null)
-  mc1193.link(mc1194, null)
-  mc1194.link(mc1201, file('versions/mapping-1.19.4-1.20.1.txt'))
-  mc1201.link(mc1204, null)
-  mc1204.link(mc1206, null)
-  mc1206.link(mc1211, null)
+  mc11701.link(mc11802, null)
+  mc11802.link(mc11903, null)
+  mc11903.link(mc11904, null)
+  mc11904.link(mc12001, file('versions/mapping-1.19.4-1.20.1.txt'))
+  mc12001.link(mc12004, null)
+  mc12004.link(mc12006, null)
+  mc12006.link(mc12101, null)
+  mc12101.link(mc12103, null)
+  mc12103.link(mc12104, null)
+  mc12104.link(mc12105, null)
+  mc12105.link(mc12108, null)
+  for (final def node in getNodes()) {
+    findProject(node.project).ext.mcVersion = node.mcVersion
+  }
 }
+
 
 tasks.register('buildAndGather') {
   subprojects {
@@ -41,10 +55,10 @@ tasks.register('buildAndGather') {
       copy {
         from(buildLibs(project)) {
           include '*.jar'
-          exclude '*-dev.gar', '*-sources.jar'
+          exclude '*-dev.jar', '*-sources.jar', '*-shadow.jar'
         }
         into buildLibs(rootProject)
-        duplicatesStrategy duplicatesStrategy.INCLUDE
+        duplicatesStrategy = DuplicatesStrategy.INCLUDE
       }
     }
   }

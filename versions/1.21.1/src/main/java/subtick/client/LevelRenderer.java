@@ -2,7 +2,13 @@ package subtick.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+//#if MC >= 12105
+//$$ import fi.dy.masa.malilib.util.data.Color4f;
+//#else
 import fi.dy.masa.malilib.util.Color4f;
+//#endif
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -13,50 +19,110 @@ import org.joml.Quaternionf;
 
 import java.util.HashSet;
 import java.util.Objects;
+//#if MC >= 12103
+//#if MC < 12105
+//$$import net.minecraft.client.renderer.CoreShaders;
+//#endif
+//#endif
 
 public class LevelRenderer
 {
-  private static final Minecraft mc = Minecraft.getInstance();
-  private static final Font font = mc.font;
+  //#if MC >= 12105
+  //$$ private static final com.mojang.blaze3d.pipeline.RenderPipeline WORLD_QUAD_PIPELINE = com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.DEBUG_FILLED_SNIPPET)
+  //$$         .withLocation(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("subtick", "world_quads"))
+  //$$         .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
+  //$$         .withDepthWrite(false)
+  //$$         .withCull(false)
+  //$$         .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
+  //$$         .build();
+  //$$ public static final net.minecraft.client.renderer.RenderType WORLD_QUADS = net.minecraft.client.renderer.RenderType.create(
+  //$$         "subtick_world_quads", 256, false, true, WORLD_QUAD_PIPELINE,
+  //$$         net.minecraft.client.renderer.RenderType.CompositeState.builder()
+  //$$                 .createCompositeState(false)
+  //$$ );
+
+  //$$ private static final com.mojang.blaze3d.pipeline.RenderPipeline WORLD_LINE_PIPELINE = com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.LINES_SNIPPET)
+  //$$         .withLocation(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("subtick", "world_lines"))
+  //$$         .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
+  //$$         .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.LINES)
+  //$$         .build();
+  //$$ public static final net.minecraft.client.renderer.RenderType WORLD_LINES = net.minecraft.client.renderer.RenderType.create(
+  //$$        "subtick_world_lines", 256, false, true, WORLD_LINE_PIPELINE,
+  //$$         net.minecraft.client.renderer.RenderType.CompositeState.builder()
+  //$$              .setLineState(new net.minecraft.client.renderer.RenderStateShard.LineStateShard(java.util.OptionalDouble.empty()))
+  //$$               .createCompositeState(false)
+  //$$ );
+  //#endif
   private static final HashSet<Line> lines = new HashSet<>();
   private static final HashSet<Quad> quads = new HashSet<>();
   private static final HashSet<Text> texts = new HashSet<>();
 
-  public static synchronized void render(PoseStack ps) {
-    if (lines.isEmpty() && quads.isEmpty() && texts.isEmpty()) return;
+  public static void init(){
+    WorldRenderEvents.LAST.register(LevelRenderer::render);
+  }
 
-    Camera camera = mc.gameRenderer.getMainCamera();
+  public static synchronized void render(WorldRenderContext context) {
+    if (lines.isEmpty() && quads.isEmpty() && texts.isEmpty()) return;
+    PoseStack ps = context.matrixStack();
+
+    Camera camera = context.camera();
     Vec3 cpos = camera.getPosition();
     if (!quads.isEmpty()) {
+      //#if MC < 12105
+      //#if MC >= 12103
+      //$$ RenderSystem.setShader(CoreShaders.POSITION_COLOR);
+      //#else
       RenderSystem.setShader(GameRenderer::getPositionColorShader);
+      //#endif
       RenderSystem.enableBlend();
       RenderSystem.defaultBlendFunc();
       RenderSystem.disableDepthTest();
+      //#endif
 
       BufferBuilder quadBuffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
       for (Quad quad : quads) {
         quad.render(quadBuffer, cpos.x, cpos.y, cpos.z);
       }
+      //#if MC >= 12105
+      //$$ WORLD_QUADS.draw(quadBuffer.buildOrThrow());
+      //#else
       BufferUploader.drawWithShader(quadBuffer.buildOrThrow());
+      //#endif
     }
     if (!lines.isEmpty()) {
+      //#if MC < 12105
+      //#if MC >= 12103
+      //$$ RenderSystem.setShader(CoreShaders.POSITION_COLOR);
+      //#else
       RenderSystem.setShader(GameRenderer::getPositionColorShader);
+      //#endif
       RenderSystem.enableBlend();
       RenderSystem.defaultBlendFunc();
       RenderSystem.disableDepthTest();
+      //#endif
 
       BufferBuilder lineBuffer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR);
       for (Line line : lines) {
         line.render(lineBuffer, cpos.x, cpos.y, cpos.z);
       }
+      //#if MC >= 12105
+      //$$ WORLD_LINES.draw(lineBuffer.buildOrThrow());
+      //#else
       BufferUploader.drawWithShader(lineBuffer.buildOrThrow());
+      //#endif
     }
 
     if (!texts.isEmpty()) {
-      RenderSystem.setShader(GameRenderer::getRendertypeTextShader);
+      //#if MC < 12105
+      //#if MC >= 12103
+      //$$ RenderSystem.setShader(CoreShaders.POSITION_COLOR);
+      //#else
+      RenderSystem.setShader(GameRenderer::getPositionColorShader);
+      //#endif
       RenderSystem.enableBlend();
       RenderSystem.defaultBlendFunc();
       RenderSystem.disableDepthTest();
+      //#endif
       for (Text text : texts) {
         text.render(null, ps, camera.rotation(), cpos.x, cpos.y, cpos.z);
       }
@@ -262,12 +328,15 @@ public class LevelRenderer
     @Override
     public void render(BufferBuilder buffer, PoseStack poseStack, Quaternionf rotation, double cx, double cy, double cz)
     {
+      Font font = Minecraft.getInstance().font;
       poseStack.pushPose();
       poseStack.translate((float)(x - cx), (float)(y - cy), (float)(z - cz));
       poseStack.mulPose(rotation);
-      poseStack.scale(-0.07F, -0.07F, 0.07F);
+      poseStack.scale(0.07F, -0.07F, 0.07F);
+      //#if MC <= 12101
       RenderSystem.applyModelViewMatrix();
-      MultiBufferSource.BufferSource immediate = mc.renderBuffers().bufferSource();
+      //#endif
+      MultiBufferSource.BufferSource immediate = Minecraft.getInstance().renderBuffers().bufferSource();
       font.drawInBatch(text, -font.width(text)/2F, -font.lineHeight * 0.5F, color.intValue, false, poseStack.last().pose(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
       immediate.endBatch();
       poseStack.popPose();
@@ -291,20 +360,25 @@ public class LevelRenderer
     @Override
     public void render(BufferBuilder buffer, PoseStack poseStack, Quaternionf rotation, double cx, double cy, double cz)
     {
+      Font font = Minecraft.getInstance().font;
       poseStack.pushPose();
       poseStack.translate((float)(x - cx), (float)(y - cy), (float)(z - cz));
       poseStack.mulPose(rotation);
-      poseStack.scale(-0.07F, -0.07F, 0.08F);
+      poseStack.scale(0.07F, -0.07F, 0.08F);
+      //#if MC <= 12101
       RenderSystem.applyModelViewMatrix();
+      //#endif
 
-      MultiBufferSource.BufferSource immediate = mc.renderBuffers().bufferSource();
+      MultiBufferSource.BufferSource immediate = Minecraft.getInstance().renderBuffers().bufferSource();
       font.drawInBatch(index, -font.width(index)/2F, -font.lineHeight * 0.5F, color1, false, poseStack.last().pose(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
       immediate.endBatch();
 
       poseStack.translate(font.width(index)/2F, 0, 0);
       poseStack.scale(0.5F, 0.5F, 0.5F);
+      //#if MC <= 12101
       RenderSystem.applyModelViewMatrix();
-      immediate = mc.renderBuffers().bufferSource();
+      //#endif
+      immediate = Minecraft.getInstance().renderBuffers().bufferSource();
       font.drawInBatch(depth, -font.width(depth)/2F, font.lineHeight + 1, color2, false, poseStack.last().pose(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
       immediate.endBatch();
       poseStack.popPose();

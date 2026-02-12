@@ -29,6 +29,10 @@ import net.minecraft.world.level.TickNextTickData;
 import subtick.SubTick;
 import subtick.mixins.lithium.LithiumServerTickSchedulerAccessor;
 //#endif
+//#if MC >= 12103
+//$$ import net.minecraft.util.profiling.ProfilerFiller;
+//$$ import net.minecraft.util.profiling.Profiler;
+//#endif
 
 public class ScheduledTickQueue<T> extends TickingQueue
 {
@@ -84,7 +88,12 @@ public class ScheduledTickQueue<T> extends TickingQueue
     //$$   (BiConsumer<BlockPos, Block>)level::tickBlock :
     //$$   (BiConsumer<BlockPos, Fluid>)level::tickFluid);
     //$$
+    //#if MC >= 12103
+    //$$ ProfilerFiller pf = Profiler.get();
+    //$$ levelTicks.collectTicks(level.getGameTime(), 65536, pf);
+    //#else
     //$$ levelTicks.collectTicks(level.getGameTime(), 65536, levelTicks.profiler.get());
+    //#endif
     //$$ queue.clear();
     //$$ for(ScheduledTick<T> scheduledTick : levelTicks.toRunThisTick)
     //$$   queue.add(new QueueElement(scheduledTick));

@@ -65,7 +65,11 @@ public record TickPhase(int dim, int phase)
 
   public TickPhase(CompoundTag tag)
   {
+    //#if MC >= 12105
+    //$$ this(tag.getInt("dim").get(), tag.getInt("phase").get());
+    //#else
     this(tag.getInt("dim"), tag.getInt("phase"));
+    //#endif
   }
 
   /*

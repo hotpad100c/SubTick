@@ -5,10 +5,16 @@ import java.util.Iterator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.WaterAnimal;
+import net.minecraft.world.entity.npc.Npc;
 import org.apache.commons.lang3.tuple.Triple;
 
 import subtick.QueueElement;
 import subtick.TickPhase;
+//#if MC >= 12103
+//$$ import net.minecraft.world.level.GameRules;
+//#endif
 
 public class EntityQueue extends TickingQueue
 {
@@ -44,8 +50,12 @@ public class EntityQueue extends TickingQueue
         queue.remove(new QueueElement(entity));
         continue;
       }
-
-      if(level.shouldDiscardEntity(entity))
+      //#if MC >= 12103
+      //$$ boolean shouldDiscardEntity = level.server.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) || !(entity instanceof Animal) && !(entity instanceof WaterAnimal);
+      //#else
+      boolean shouldDiscardEntity = level.server.isSpawningAnimals() || !(entity instanceof Animal) && !(entity instanceof WaterAnimal) ? !level.server.areNpcsEnabled() && entity instanceof Npc : true;
+      //#endif
+      if(shouldDiscardEntity)
       {
         queue.remove(new QueueElement(entity));
         entity.discard();

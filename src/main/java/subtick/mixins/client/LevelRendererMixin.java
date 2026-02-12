@@ -25,9 +25,6 @@ import carpet.fakes.MinecraftClientInferface;
 import net.minecraft.client.Minecraft;
 import subtick.client.ClientTickHandler;
 //#endif
-//#if MC >= 12101
-//$$ import net.minecraft.client.DeltaTracker;
-//#endif
 //#if MC >= 12006
 //$$ import com.llamalad7.mixinextras.sugar.Local;
 //$$ import com.mojang.blaze3d.systems.RenderSystem;
@@ -36,11 +33,10 @@ import subtick.client.ClientTickHandler;
 @Mixin(LevelRenderer.class)
 public class LevelRendererMixin
 {
+  //#if MC < 12101
   @Inject(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderSnowAndRain(Lnet/minecraft/client/renderer/LightTexture;FDDD)V", ordinal = 1))
   private void onRenderWorldLastNormal(
-          //#if MC >= 12101
-          //$$ DeltaTracker deltaTracker, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci, @Local PoseStack poseStack
-          //#elseif MC >= 12006
+          //#if MC >= 12006
           //$$ float f, long l, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci, @Local PoseStack poseStack
           //#else
           PoseStack poseStack, float delta, long time, boolean renderBlockOutline, Camera camera, GameRenderer renderer, LightTexture lightTexture, Matrix4f projMatrix, CallbackInfo ci
@@ -49,6 +45,8 @@ public class LevelRendererMixin
   {
     subtick.client.LevelRenderer.render(poseStack);
   }
+  //#endif
+
 
   // Everything below this point is yoinked from carpet
 

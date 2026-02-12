@@ -4,11 +4,6 @@ apply plugin: 'com.replaymod.preprocess'
 
 int mcVersion = project.mcVersion
 
-preprocess {
-  // mcVersion = vars.get()["MC"]
-  tabIndentation = false
-}
-
 repositories {
   maven {
     url 'https://masa.dy.fi/maven'
@@ -53,7 +48,13 @@ dependencies {
   } else {
     modImplementation "maven.modrinth:lithium:${project.lithium_version}"
   }
-  modImplementation "fi.dy.masa.malilib:malilib-fabric-${project.malilib_version}"
+  if (mcVersion >= 12104){
+    modImplementation "${project.malilib_version}"
+  }else if (mcVersion >= 12103) {
+    modImplementation "com.github.sakura-ryoko:malilib:${project.malilib_version}"
+  } else {
+    modImplementation "fi.dy.masa.malilib:malilib-fabric-${project.malilib_version}"
+  }
   modImplementation "com.terraformersmc:modmenu:${project.mod_menu_version}"
   if (mcVersion >= 12006) {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
@@ -93,7 +94,7 @@ String fullModVersion = project.mod_version + versionSuffix
 
 version = 'v' + fullModVersion
 group = project.maven_group
-archivesBaseName = project.archives_base_name + '-mc' + project.minecraft_version
+base.archivesName = project.archives_base_name + '-mc' + project.minecraft_version
 
 processResources {
   inputs.property "version", fullModVersion
@@ -152,7 +153,7 @@ jar {
 publishing {
   publications {
     mavenJava(MavenPublication) {
-      artifactId archivesBaseName
+      artifactId base.archivesName.get()
       from components.java
     }
   }

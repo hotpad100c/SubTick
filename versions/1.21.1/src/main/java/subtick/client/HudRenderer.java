@@ -1,9 +1,18 @@
 package subtick.client;
 
+import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 import com.mojang.blaze3d.vertex.*;
+import com.mojang.serialization.JsonOps;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.network.chat.MutableComponent;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -11,17 +20,42 @@ import net.minecraft.client.gui.GuiGraphics;
 
 import fi.dy.masa.malilib.config.IConfigOptionListEntry;
 import fi.dy.masa.malilib.config.options.ConfigColor;
+//#if MC >= 12105
+//$$ import fi.dy.masa.malilib.util.data.Color4f;
+//#else
 import fi.dy.masa.malilib.util.Color4f;
+//#endif
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 import subtick.QueueElement;
 import subtick.TickPhase;
 import subtick.util.Translations;
+//#if MC >= 12103
+//#if MC < 12105
+//$$import net.minecraft.client.renderer.CoreShaders;
+//#endif
+//#endif
 
 public class HudRenderer
 {
+    //#if MC >= 12105
+    //$$  private static final com.mojang.blaze3d.pipeline.RenderPipeline HUD_PIPELINE = com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.GUI_SNIPPET)
+    //$$          .withLocation(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("subtick", "hud_quads"))
+    //$$          .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
+    //$$          .withDepthWrite(false)
+    //$$          .withCull(false)
+    //$$          .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
+    //$$          .build();
+    //$$  public static final net.minecraft.client.renderer.RenderType HUD_RENDER_TYPE =
+    //$$          net.minecraft.client.renderer.RenderType.create(
+    //$$                  "subtick_hud", 256, false, true, HUD_PIPELINE,
+    //$$                  net.minecraft.client.renderer.RenderType.CompositeState.builder()
+    //$$                          .createCompositeState(false)
+    //$$          );
+    //#endif
     private static final Minecraft mc = Minecraft.getInstance();
     private static final Font font = mc.font;
 
@@ -175,26 +209,49 @@ public class HudRenderer
 
     private static Component text(QueueElement element, int i, boolean depth)
     {
+
         return depth ?
-                Component.Serializer.fromJsonLenient(String.format("[\"#%d (\", {\"color\":\"%s\",\"text\":\"%d\"}, \"): %s\"]", i, color(i <= ClientTickHandler.queueIndex1 ? Configs.STEPPED_DEPTH : i <= ClientTickHandler.queueIndex2 ? Configs.STEPPING_DEPTH : i >= ClientTickHandler.queue.size() - ClientTickHandler.newQueueElementCount ? Configs.NEW_DEPTH : Configs.TO_STEP_DEPTH), element.depth(), element.label())
+                fromJsonLenient(String.format("[\"#%d (\", {\"color\":\"%s\",\"text\":\"%d\"}, \"): %s\"]", i, color(i <= ClientTickHandler.queueIndex1 ? Configs.STEPPED_DEPTH : i <= ClientTickHandler.queueIndex2 ? Configs.STEPPING_DEPTH : i >= ClientTickHandler.queue.size() - ClientTickHandler.newQueueElementCount ? Configs.NEW_DEPTH : Configs.TO_STEP_DEPTH), element.depth(), element.label())
                         , Minecraft.getInstance().level.registryAccess()
                 ) :
                 Component.literal(String.format("#%d: %s", i, element.label()));
+    }
+    static MutableComponent deserialize(JsonElement jsonElement, HolderLookup.Provider provider) {
+        return (MutableComponent) ComponentSerialization.CODEC
+                .parse(provider.createSerializationContext(JsonOps.INSTANCE), jsonElement)
+                .getOrThrow(JsonParseException::new);
+    }
+    @Nullable
+    public static MutableComponent fromJsonLenient(String string, HolderLookup.Provider provider) {
+        JsonReader jsonReader = new JsonReader(new StringReader(string));
+        jsonReader.setLenient(true);
+        JsonElement jsonElement = JsonParser.parseReader(jsonReader);
+        return jsonElement == null ? null : deserialize(jsonElement, provider);
     }
 
     public static void renderHudA(
             GuiGraphics guiGraphics,
             TickPhase phase, int x, int y, int wDim, int wPhase, int h)
     {
+        //#if MC < 12105
+        //#if MC >= 12103
+        //$$ RenderSystem.setShader(CoreShaders.POSITION_COLOR);
+        //#else
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        //#endif
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
+        //#endif
 
         BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
 
         drawTableB(builder, x, y, h, wDim, ClientTickHandler.dimensions.size(), phase.dim());
         drawTableA(builder, x+wDim+10, y, h, wPhase, TickPhase.totalPhases, phase.phase());
+        //#if MC >= 12105
+        //$$ HUD_RENDER_TYPE.draw(builder.buildOrThrow());
+        //#else
         BufferUploader.drawWithShader(builder.buildOrThrow());
+        //#endif
 
         x += 2;
         for(int y1 = y+2, i = 0; i < ClientTickHandler.dimensions.size(); i++, y1 += h)
@@ -209,9 +266,15 @@ public class HudRenderer
             GuiGraphics guiGraphics,
             Component[] queue, TickPhase phase, int iqueue1, int iqueue2, int iqueue3, int x, int y, int wDim, int wPhase, int wQueue, int h)
     {
+        //#if MC < 12105
+        //#if MC >= 12103
+        //$$ RenderSystem.setShader(CoreShaders.POSITION_COLOR);
+        //#else
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        //#endif
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
+        //#endif
 
         BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
 
@@ -224,7 +287,11 @@ public class HudRenderer
         drawQuad(builder,
                 sx, sy, sx, sy + h - 1,
                 sx + 9, y + queue.length * h, sx + 9, y, Configs.POSITION.getColor());
+        //#if MC >= 12105
+        //$$ HUD_RENDER_TYPE.draw(builder.buildOrThrow());
+        //#else
         BufferUploader.drawWithShader(builder.buildOrThrow());
+        //#endif
 
         x += 2;
         for(int y1 = y+2, i = 0; i < ClientTickHandler.dimensions.size(); i++, y1 += h)
