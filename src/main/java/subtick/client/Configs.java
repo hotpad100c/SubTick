@@ -65,7 +65,12 @@ public class Configs implements IConfigHandler
   @Override
   public void save()
   {
-    File dir = FileUtils.getConfigDirectory();
+    File dir =
+            //#if MC >= 12110
+            //$$ FileUtils.getConfigDirectoryAsPath().toFile();
+            //#else
+            FileUtils.getConfigDirectory();
+    //#endif
     if(!(dir.exists() && dir.isDirectory()) && !dir.mkdirs())
       return;
 
@@ -77,7 +82,13 @@ public class Configs implements IConfigHandler
   @Override
   public void load()
   {
-    File configFile = new File(FileUtils.getConfigDirectory(), "subtick.json");
+    File configFile = new File(
+            //#if MC >= 12110
+            //$$ FileUtils.getConfigDirectoryAsPath().toFile()
+            //#else
+            FileUtils.getConfigDirectory()
+            //#endif
+            , "subtick.json");
     if(!configFile.exists() || !configFile.isFile() || !configFile.canRead())
       return;
 

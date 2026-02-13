@@ -130,7 +130,13 @@ public class ServerLevelMixin
       return true;
 
     // Send chunk updates and entity updates to clients
-    for(ChunkHolder holder : Lists.newArrayList(self.chunkMap.getChunks()))
+    for(ChunkHolder holder : Lists.newArrayList(self.chunkMap.
+            //#if MC >= 12110
+            //$$ visibleChunkMap.values()
+            //#else
+            getChunks()
+            //#endif
+    ))
     {
       //#if MC >= 12006
       //$$ holder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).ifSuccess(holder::broadcastChanges);

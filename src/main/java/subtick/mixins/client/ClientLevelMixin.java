@@ -22,11 +22,13 @@ public class ClientLevelMixin
     ClientTickHandler.onTick((ClientLevel)(Object)this);
   }
 
+  //#if MC < 12110
   @WrapWithCondition(method = "tickEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;tickBlockEntities()V"))
   private boolean tickBlockEntities(ClientLevel level)
   {
     return !ClientTickHandler.skip_block_entities && ClientTickHandler.shouldTick();
   }
+  //#endif
 
   @Inject(method = "tickNonPassenger", at = @At("HEAD"), cancellable = true)
   private void tickNonPassenger(Entity entity, CallbackInfo ci)

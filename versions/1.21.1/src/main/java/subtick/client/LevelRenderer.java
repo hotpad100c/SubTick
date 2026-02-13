@@ -7,8 +7,18 @@ import com.mojang.blaze3d.vertex.*;
 //#else
 import fi.dy.masa.malilib.util.Color4f;
 //#endif
+//#if MC >= 12110
+//#if MC >= 12111
+//$$ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
+//$$ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
+//#else
+//$$ import subtick.client.substitute.WorldRenderContext;
+//$$ import subtick.client.substitute.WorldRenderEvents;
+//#endif
+//#else
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+//#endif
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -36,21 +46,38 @@ public class LevelRenderer
   //$$         .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
   //$$         .build();
   //$$ public static final net.minecraft.client.renderer.RenderType WORLD_QUADS = net.minecraft.client.renderer.RenderType.create(
-  //$$         "subtick_world_quads", 256, false, true, WORLD_QUAD_PIPELINE,
+  //$$         "subtick_world_quads",
+  //#if MC >= 12111
+  //$$ net.minecraft.client.renderer.rendertype.RenderSetup.builder(WORLD_QUAD_PIPELINE)
+  //$$                .affectsCrumbling()
+  //$$                .sortOnUpload()
+  //$$                .bufferSize(256)
+  //$$                .createRenderSetup()
+  //#else
+  //$$ 256, false, true, WORLD_QUAD_PIPELINE,
   //$$         net.minecraft.client.renderer.RenderType.CompositeState.builder()
   //$$                 .createCompositeState(false)
+  //#endif
   //$$ );
-
   //$$ private static final com.mojang.blaze3d.pipeline.RenderPipeline WORLD_LINE_PIPELINE = com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.LINES_SNIPPET)
   //$$         .withLocation(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("subtick", "world_lines"))
   //$$         .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
   //$$         .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.LINES)
   //$$         .build();
   //$$ public static final net.minecraft.client.renderer.RenderType WORLD_LINES = net.minecraft.client.renderer.RenderType.create(
-  //$$        "subtick_world_lines", 256, false, true, WORLD_LINE_PIPELINE,
+  //$$        "subtick_world_lines",
+  //#if MC >= 12111
+  //$$ net.minecraft.client.renderer.rendertype.RenderSetup.builder(WORLD_LINE_PIPELINE)
+  //$$                .affectsCrumbling()
+  //$$                .sortOnUpload()
+  //$$                .bufferSize(256)
+  //$$                .createRenderSetup()
+  //#else
+  //$$ 256, false, true, WORLD_LINE_PIPELINE,
   //$$         net.minecraft.client.renderer.RenderType.CompositeState.builder()
   //$$              .setLineState(new net.minecraft.client.renderer.RenderStateShard.LineStateShard(java.util.OptionalDouble.empty()))
   //$$               .createCompositeState(false)
+  //#endif
   //$$ );
   //#endif
   private static final HashSet<Line> lines = new HashSet<>();
@@ -58,15 +85,29 @@ public class LevelRenderer
   private static final HashSet<Text> texts = new HashSet<>();
 
   public static void init(){
+    //#if MC >= 12111
+    //$$ WorldRenderEvents.BEFORE_TRANSLUCENT.register(LevelRenderer::render);
+    //#elseif MC >= 12110
+    //$$ WorldRenderEvents.AFTER_TRANSLUCENT.register(LevelRenderer::render);
+    //#else
     WorldRenderEvents.LAST.register(LevelRenderer::render);
+    //#endif
   }
 
   public static synchronized void render(WorldRenderContext context) {
     if (lines.isEmpty() && quads.isEmpty() && texts.isEmpty()) return;
+    //#if MC >= 12111
+    //$$ PoseStack ps = context.matrices();
+    //#else
     PoseStack ps = context.matrixStack();
+    //#endif
 
-    Camera camera = context.camera();
+    Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+    //#if MC >= 12111
+    //$$ Vec3 cpos = camera.position();
+    //#else
     Vec3 cpos = camera.getPosition();
+    //#endif
     if (!quads.isEmpty()) {
       //#if MC < 12105
       //#if MC >= 12103

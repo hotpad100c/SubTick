@@ -20,10 +20,19 @@ public record CustomMeshRenderState(
 ) implements GuiElementRenderState {
 
     @Override
+    //#if MC >= 12110
+    //$$ public void buildVertices(VertexConsumer vertexConsumer) {
+    //#else
     public void buildVertices(VertexConsumer vertexConsumer, float z) {
+        //#endif
         for (int i = 0; i < 4; i++) {
             Vector2f v = (i < vertices.length) ? vertices[i] : vertices[vertices.length - 1];
-            vertexConsumer.addVertexWith2DPose(this.pose, v.x, v.y, z).setColor(this.color);
+            //#if MC >= 12110
+            //$$ vertexConsumer.addVertexWith2DPose(this.pose, v.x, v.y)
+            //#else
+            vertexConsumer.addVertexWith2DPose(this.pose, v.x, v.y, z)
+                    //#endif
+                    .setColor(this.color);
         }
     }
 

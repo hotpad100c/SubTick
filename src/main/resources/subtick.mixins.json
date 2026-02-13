@@ -10,6 +10,8 @@
     "carpet.ServerNetworkHandlerAccessor",
     "carpet.ServerNetworkHandlerMixin",
     "carpet.TickCommandMixin",
+    "client.MinecraftMixin",
+    "client.render.LevelRendererMixin",
     "lithium.LithiumServerTickSchedulerAccessor"
   ],
   "client": [
