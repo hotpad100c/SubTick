@@ -32,8 +32,11 @@ public class BlockEntityQueue extends TickingQueue
     block_entity_iterator = level.blockEntityTickers.iterator();
 
     queue.clear();
-    for(TickingBlockEntity be : level.blockEntityTickers)
-      queue.add(new QueueElement(be));
+    for(TickingBlockEntity be : level.blockEntityTickers) {
+        if (be != null) {
+            queue.add(new QueueElement(be));
+        }
+    }
   }
 
   @Override

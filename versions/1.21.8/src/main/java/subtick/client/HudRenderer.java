@@ -10,6 +10,9 @@ import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.serialization.JsonOps;
+import net.minecraft.client.gui.render.TextureSetup;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.chat.MutableComponent;
@@ -24,6 +27,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.joml.Vector2f;
 import subtick.QueueElement;
 import subtick.TickPhase;
 import subtick.util.Translations;
@@ -329,10 +334,20 @@ public class HudRenderer
 
     private static void drawQuad(GuiGraphics guiGraphics, int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, Color4f color)
     {
-        int minX = Math.min(Math.min(x1, x2), Math.min(x3, x4));
-        int maxX = Math.max(Math.max(x1, x2), Math.max(x3, x4));
-        int minY = Math.min(Math.min(y1, y2), Math.min(y3, y4));
-        int maxY = Math.max(Math.max(y1, y2), Math.max(y3, y4));
-        guiGraphics.fill(minX, minY, maxX, maxY, color.intValue);
+        Vector2f[] vertices = {
+                new Vector2f((float)x1, (float)y1),
+                new Vector2f((float)x2, (float)y2),
+                new Vector2f((float)x3, (float)y3),
+                new Vector2f((float)x4, (float)y4)
+        };
+
+        guiGraphics.guiRenderState.submitGuiElement(new CustomMeshRenderState(
+                RenderPipelines.GUI,
+                TextureSetup.noTexture(),
+                guiGraphics.pose(),
+                vertices,
+                color.intValue,
+                guiGraphics.scissorStack.peek()
+        ));
     }
 }
