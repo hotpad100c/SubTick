@@ -1,8 +1,18 @@
 package subtick.mixins.client;
 
+import net.minecraft.client.renderer.MultiBufferSource;
+import org.spongepowered.asm.mixin.Unique;
+import subtick.client.ClientTickHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+//#if MC >= 12101
+import org.spongepowered.asm.mixin.injection.ModifyArgs;
+import net.minecraft.world.entity.player.Player;
+import org.apache.http.util.Args;
+import net.minecraft.world.entity.Entity;
+
+//#endif
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -17,17 +27,18 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 
-//#if MC < 12003
+//#if MC < 12002
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import carpet.fakes.MinecraftClientInferface;
 import net.minecraft.client.Minecraft;
-import subtick.client.ClientTickHandler;
 //#endif
 //#if MC >= 12006
 //$$ import com.llamalad7.mixinextras.sugar.Local;
 //$$ import com.mojang.blaze3d.systems.RenderSystem;
+//$$ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+//$$ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 //#endif
 
 @Mixin(LevelRenderer.class)
@@ -50,7 +61,7 @@ public class LevelRendererMixin
 
   // Everything below this point is yoinked from carpet
 
-  //#if MC < 12003
+  //#if MC < 12002
   @Shadow @Final private Minecraft minecraft;
   float initial = -1234.0f;
 
@@ -74,5 +85,37 @@ public class LevelRendererMixin
   {
     return initial == -1234.0f ? previous : initial;
   }
+  //#elseif MC < 12104
+  //$$ @WrapOperation(method = "renderLevel", at = @At(value = "INVOKE",
+  //$$    target = "Lnet/minecraft/client/renderer/LevelRenderer;renderEntity(Lnet/minecraft/world/entity/Entity;DDDFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V"
+  //$$ ))
+  //$$ private void modifyDelta(LevelRenderer instance, Entity entity, double cameraX, double cameraY, double cameraZ, float tickDelta, PoseStack matrices, MultiBufferSource vertexConsumers, Operation<Void> original) {
+  //$$     tickDelta = shouldUsePausedDelta(entity) ? 1.0F : tickDelta;
+  //$$     original.call(instance, entity, cameraX, cameraY, cameraZ, tickDelta, matrices, vertexConsumers);
+  //$$}
+  //#elseif MC < 12109
+  //$$ @WrapOperation(method = "renderEntities", at = @At(value = "INVOKE",
+  //$$    target = "Lnet/minecraft/client/renderer/LevelRenderer;renderEntity(Lnet/minecraft/world/entity/Entity;DDDFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V"
+  //$$ ))
+  //$$ private void modifyDelta(LevelRenderer instance, Entity entity, double cameraX, double cameraY, double cameraZ, float tickDelta, PoseStack matrices, MultiBufferSource vertexConsumers, Operation<Void> original) {
+  //$$     tickDelta = shouldUsePausedDelta(entity) ? 1.0F : tickDelta;
+  //$$     original.call(instance, entity, cameraX, cameraY, cameraZ, tickDelta, matrices, vertexConsumers);
+  //$$}
+  //#elseif MC < 12111
+  //$$ @ModifyArgs(method = "extractEntity", at = @At(                value = "INVOKE",
+  //$$    target = "Lnet/minecraft/client/renderer/entity/EntityRenderDispatcher;extractEntity(Lnet/minecraft/world/entity/Entity;F)Lnet/minecraft/client/renderer/entity/state/EntityRenderState;"
+  //$$ ))
+  //$$ public void modifyDelta(Args args) {
+  //$$   Entity entity = args.get(0);
+  //$$   float tickDelta = args.get(1);
+  //$$   tickDelta = shouldUsePausedDelta(entity) ? 1.0F : tickDelta;
+  //$$   args.set(1, tickDelta);
+  //$$ }
   //#endif
+
+  @Unique
+  private boolean shouldUsePausedDelta(Entity entity) {
+    return ClientTickHandler.frozen && !(entity instanceof Player) && entity.getPassengers().stream().noneMatch(entity1 -> entity1 instanceof Player);
+  }
+
 }

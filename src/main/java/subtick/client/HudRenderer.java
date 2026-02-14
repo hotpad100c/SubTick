@@ -3,6 +3,7 @@ package subtick.client;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.client.Options;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -129,7 +130,7 @@ public class HudRenderer
   {
     synchronized(ClientTickHandler.class)
     {
-      if(!ClientTickHandler.frozen || !Configs.SHOW_HUD.getBooleanValue())
+      if(!ClientTickHandler.frozen || !Configs.SHOW_HUD.getBooleanValue() || mc.options.hideGui)
         return;
 
       STEPPED_BG = Configs.STEPPED_BG.getColor();

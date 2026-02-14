@@ -33,7 +33,7 @@ public class ClientLevelMixin
   @Inject(method = "tickNonPassenger", at = @At("HEAD"), cancellable = true)
   private void tickNonPassenger(Entity entity, CallbackInfo ci)
   {
-    if(!ClientTickHandler.shouldTick() && !(entity instanceof Player))
+    if(!ClientTickHandler.shouldTick() && !(entity instanceof Player) && !entity.getPassengers().stream().anyMatch(entity1 -> entity1 instanceof Player))
       ci.cancel();
   }
 }

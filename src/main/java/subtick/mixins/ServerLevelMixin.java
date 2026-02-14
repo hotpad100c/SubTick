@@ -218,9 +218,10 @@ public class ServerLevelMixin
     }
   }
 
+
+  @Unique
   private boolean isPlayerControlled(Entity entity) {
-    Entity controller = entity.getControllingPassenger();
-    return controller instanceof Player;
+    return entity.getPassengers().stream().anyMatch(entity1 -> entity1 instanceof Player);
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;tickBlockEntities()V"))
