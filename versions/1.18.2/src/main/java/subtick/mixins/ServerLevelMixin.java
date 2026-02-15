@@ -67,6 +67,7 @@ import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 public class ServerLevelMixin
 {
 
+  @Unique private boolean subtick$shouldTickEntityThisTime = true;
   @Unique private final Map<UUID, Vec3> subtick$lastPos = new HashMap<>();
   @Unique private final Map<UUID, Vec2> subtick$lastRot = new HashMap<>();
   @Shadow @Final private MinecraftServer server;
@@ -182,19 +183,8 @@ public class ServerLevelMixin
   @Inject(method = "tick", at = @At(target = "Lnet/minecraft/world/level/entity/EntityTickList;forEach(Ljava/util/function/Consumer;)V", value = "INVOKE"))
   private void tickEntities(CallbackInfo ci)
   {
-    if(this.entityTickList.active.isEmpty()) tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.ENTITY);
+    subtick$shouldTickEntityThisTime = tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.ENTITY);
   }
-
-  /*
-  * To keep the player and player mounted entities ticking correctly (matching vanilla 1.21 behavior),
-  * we have to filter ticks inside the forEach of entityTickList.
-  * But there is problem: when a dimension has no entities,
-  * or only player entities, tickHandler().shouldTick will never reach phase 8,
-  * causing the phase system to get stuck in the stepping state.
-  * The above approach is used to solve this issue.
-  * It ensures that shouldTick is still executed even when there are no entities.
-  */
-
 
   @Inject(method = "method_31420", at = @At(value = "HEAD"), cancellable = true)
   //#if MC >= 12002
@@ -203,14 +193,12 @@ public class ServerLevelMixin
   private void entity(ProfilerFiller profilerFiller, Entity entity, CallbackInfo ci)
   //#endif
   {
-    boolean shouldTick = tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.ENTITY);
-
-    if (!(entity instanceof ServerPlayer) && !shouldTick && !isPlayerControlled(entity)
+    if (!(entity instanceof ServerPlayer) && !subtick$shouldTickEntityThisTime && !isPlayerControlled(entity)
     ) {
       ci.cancel();
       return;
     }
-
+    /*
     if (entity instanceof ServerPlayer player) {
       UUID uuid = player.getUUID();
       Vec3 currentPos = player.position();
@@ -225,7 +213,7 @@ public class ServerLevelMixin
       }
       subtick$lastPos.put(uuid, currentPos);
       subtick$lastRot.put(uuid, currentRot);
-    }
+    }*/
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;tickBlockEntities()V"))
