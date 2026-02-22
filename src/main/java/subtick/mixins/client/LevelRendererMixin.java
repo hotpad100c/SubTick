@@ -104,7 +104,7 @@ public class LevelRendererMixin
   //$$ @ModifyArgs(method = "extractEntity", at = @At(                value = "INVOKE",
   //$$    target = "Lnet/minecraft/client/renderer/entity/EntityRenderDispatcher;extractEntity(Lnet/minecraft/world/entity/Entity;F)Lnet/minecraft/client/renderer/entity/state/EntityRenderState;"
   //$$ ))
-  //$$ public void modifyDelta(Args args) {
+  //$$ public void modifyDelta(org.spongepowered.asm.mixin.injection.invoke.arg.Args args) {
   //$$   Entity entity = args.get(0);
   //$$   float tickDelta = args.get(1);
   //$$   tickDelta = shouldUsePausedDelta(entity) ? 1.0F : tickDelta;
