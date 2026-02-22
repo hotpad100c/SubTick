@@ -9,7 +9,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 //$$ import org.spongepowered.asm.mixin.Unique;
 //$$ import org.spongepowered.asm.mixin.injection.ModifyArgs;
 //$$ import net.minecraft.world.entity.player.Player;
+//#if MC < 12111
 //$$ import org.apache.http.util.Args;
+//#endif
 //$$ import net.minecraft.world.entity.Entity;
 //#endif
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;

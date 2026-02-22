@@ -43,6 +43,7 @@ dependencies {
   // mods
   modImplementation "carpet:fabric-carpet:${project.carpet_core_version}"
   modImplementation "com.g4mesoft:g4mespeed:${project.g4mespeed_version}"
+  include(implementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:0.2.2")))
   if (mcVersion >= 12101) {
     modImplementation "${project.lithium_version}"
   } else {

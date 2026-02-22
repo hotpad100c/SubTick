@@ -8,7 +8,11 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 //#else
 import net.minecraft.server.ServerTickRateManager;
 //#endif
+//#if MC >= 12105
+//$$ import net.minecraft.world.level.TicketStorage;
+//#else
 import net.minecraft.server.level.DistanceManager;
+//#endif
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import org.spongepowered.asm.mixin.Final;
@@ -30,8 +34,13 @@ public class ServerChunkCacheMixin {
         return ((ITickHandleable)level.getServer()).tickHandler();
     }
 
+    //#if MC >= 12105
+    //$$ @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/TicketStorage;purgeStaleTickets()V"))
+    //$$  private boolean purgeStaleTickets(TicketStorage instance) {
+    //#else
     @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/DistanceManager;purgeStaleTickets()V"))
     private boolean purgeStaleTickets(DistanceManager instance) {
+        //#endif
         return tickHandler().shouldTick(level, TickPhase.CHUNK);
     }
 

@@ -63,7 +63,7 @@ import java.util.function.Consumer;
 // entity management
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 
-@Mixin(ServerLevel.class)
+@Mixin(value = ServerLevel.class, priority = 1001)
 public class ServerLevelMixin
 {
 
@@ -147,31 +147,23 @@ public class ServerLevelMixin
     return tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.RAID);
   }
 
+  //#if MC < 12103
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerChunkCache;tick(Ljava/util/function/BooleanSupplier;Z)V"))
   private boolean chunk(ServerChunkCache self, BooleanSupplier hasTimeLeft, boolean bool)
   {
     if(tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.CHUNK))
       return true;
 
-    // Send chunk updates and entity updates to clients
-    for(ChunkHolder holder : Lists.newArrayList(self.chunkMap.
-                    //#if MC >= 12110
-                    //$$ visibleChunkMap.values()
-                    //#else
-                            getChunks()
-            //#endif
+    for(ChunkHolder holder : Lists.newArrayList(self.chunkMap.getChunks()
     ))
     {
-      //#if MC >= 12006
-      //$$ holder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).ifSuccess(holder::broadcastChanges);
-      //#else
       Optional<LevelChunk> optional = holder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
       optional.ifPresent(holder::broadcastChanges);
-      //#endif
     }
     self.chunkMap.tick();
     return false;
   }
+  //#endif
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;runBlockEvents()V"))
   private boolean blockEvent(ServerLevel self)
