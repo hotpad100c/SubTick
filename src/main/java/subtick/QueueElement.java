@@ -71,17 +71,17 @@ public record QueueElement(String label, int x, int y, int z, int depth)
   //#if MC >= 11800
   //$$ public QueueElement(ScheduledTick<?> t)
   //$$ {
-  //$$   this(t.type() instanceof Block block ? block.getName().getString() : ((Fluid)t.type()).toString(), t.pos(), t.priority().getValue());
+  //$$   this(t.type() instanceof Block block ? block.getName().getString() : ((Fluid)t.type()).defaultFluidState().createLegacyBlock().getBlock().getName().getString(), t.pos(), t.priority().getValue());
   //$$ }
   //#else
   public QueueElement(TickNextTickData<?> t)
   {
-    this(t.getType() instanceof Block block ? block.getName().getString() : ((Fluid)t.getType()).toString(), t.pos, t.priority.getValue());
+    this(t.getType() instanceof Block block ? block.getName().getString() : ((Fluid)t.getType()).defaultFluidState().createLegacyBlock().getBlock().getName().getString(), t.pos, t.priority.getValue());
   }
 
   public QueueElement(TickEntry<?> t)
   {
-    this(t.getType() instanceof Block block ? block.getName().getString() : ((Fluid)t.getType()).toString(), t.pos, t.priority.getValue());
+    this(t.getType() instanceof Block block ? block.getName().getString() : ((Fluid)t.getType()).defaultFluidState().createLegacyBlock().getBlock().getName().getString(), t.pos, t.priority.getValue());
   }
   //#endif
 }
