@@ -36,7 +36,7 @@ public class ServerChunkCacheMixin {
     }
 
     //#if MC >= 12005
-    //$$ @WrapOperation(method = "tickChunks", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/TickRateManager;runsNormally()Z"))
+    //$$ @WrapOperation(method = "tickChunks()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/TickRateManager;runsNormally()Z"))
     //$$  private boolean tickChunks(TickRateManager instance, Operation<Boolean> original) {
     //#else
     @WrapOperation(method = "tickChunks", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;runsNormally()Z"))
