@@ -20,7 +20,7 @@ public class PlayerListMixin {
     //#else
     private void onPlaceNewPlayer(Connection connection, ServerPlayer serverPlayer, CallbackInfo ci) {
         //#endif
-        //#if MC >= 12110
+        //#if MC >= 12108
         //$$ ((ITickHandleable)serverPlayer.level().getServer()).tickHandler().handleLogin(serverPlayer);
         //#else
         ((ITickHandleable)serverPlayer.server).tickHandler().handleLogin(serverPlayer);
