@@ -1,12 +1,23 @@
 package subtick.mixins;
 
-import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
-import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.TickRateManager;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.phys.Vec2;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.entity.raid.Raids;
+import net.minecraft.world.level.BlockEventData;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.border.WorldBorder;
+import net.minecraft.world.level.entity.EntityTickList;
+import net.minecraft.world.level.entity.PersistentEntitySectionManager;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.ticks.LevelTicks;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -14,61 +25,15 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
-
-import subtick.Queues;
+import subtick.ITickHandleable;
 import subtick.TickHandler;
 import subtick.TickPhase;
-import subtick.ITickHandleable;
-import net.minecraft.server.level.ServerLevel;
 
-// world border
-import net.minecraft.world.level.border.WorldBorder;
-// tile tick
-import net.minecraft.world.ticks.LevelTicks;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import java.util.function.BiConsumer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.BlockEventData;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.material.Fluid;
-// raid
-import net.minecraft.world.entity.raid.Raids;
-// chunk
-import net.minecraft.server.level.ServerChunkCache;
-import java.util.function.BooleanSupplier;
-
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ChunkHolder;
-import com.google.common.collect.Lists;
-import java.util.Optional;
-import net.minecraft.world.level.chunk.LevelChunk;
-// entity
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.entity.EntityTickList;
-import java.util.function.Consumer;
-//#if MC >= 12002
-//$$ import net.minecraft.world.TickRateManager;
-//#endif
-//#if MC >= 12104
-//$$ import net.minecraft.world.entity.PositionMoveRotation;
-//$$ import net.minecraft.world.entity.Relative;
-//#endif
-
-// entity management
-import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 
 @Mixin(ServerLevel.class)
 public class ServerLevelMixin
 {
-
-  @Unique private final Map<UUID, Vec3> subtick$lastPos = new HashMap<>();
-  @Unique private final Map<UUID, Vec2> subtick$lastRot = new HashMap<>();
   @Shadow @Final private MinecraftServer server;
 
   @Shadow @Final public EntityTickList entityTickList;
@@ -147,32 +112,6 @@ public class ServerLevelMixin
     return tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.RAID);
   }
 
-  @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerChunkCache;tick(Ljava/util/function/BooleanSupplier;Z)V"))
-  private boolean chunk(ServerChunkCache self, BooleanSupplier hasTimeLeft, boolean bool)
-  {
-    if(tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.CHUNK))
-      return true;
-
-    // Send chunk updates and entity updates to clients
-    for(ChunkHolder holder : Lists.newArrayList(self.chunkMap.
-                    //#if MC >= 12110
-                    //$$ visibleChunkMap.values()
-                    //#else
-                            getChunks()
-            //#endif
-    ))
-    {
-      //#if MC >= 12006
-      //$$ holder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).ifSuccess(holder::broadcastChanges);
-      //#else
-      Optional<LevelChunk> optional = holder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
-      optional.ifPresent(holder::broadcastChanges);
-      //#endif
-    }
-    self.chunkMap.tick();
-    return false;
-  }
-
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;runBlockEvents()V"))
   private boolean blockEvent(ServerLevel self)
   {
@@ -198,11 +137,7 @@ public class ServerLevelMixin
 
 
   @Inject(method = "method_31420", at = @At(value = "HEAD"), cancellable = true)
-  //#if MC >= 12002
-  //$$ private void entity(TickRateManager tickRateManager, ProfilerFiller profilerFiller, Entity entity, CallbackInfo ci)
-  //#else
-  private void entity(ProfilerFiller profilerFiller, Entity entity, CallbackInfo ci)
-  //#endif
+  private void entity(TickRateManager tickRateManager, ProfilerFiller profilerFiller, Entity entity, CallbackInfo ci)
   {
     boolean shouldTick = tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.ENTITY);
     if (!(entity instanceof ServerPlayer) && !shouldTick && !isPlayerControlled(entity)) {

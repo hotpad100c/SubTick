@@ -3,9 +3,7 @@ package subtick.network;
 import java.util.ArrayList;
 
 import carpet.CarpetSettings;
-//#if MC >= 12003
-//$$ import net.minecraft.network.protocol.game.ClientboundTickingStepPacket;
-//#else
+//#if MC < 12003
 import carpet.helpers.TickSpeed;
 //#endif
 import carpet.network.CarpetClient;
@@ -205,13 +203,15 @@ public class ServerNetworkHandler
 
     if(ticks != 0)
     {
-      //#if MC >= 12003
-      //$$ level.getServer().getPlayerList().broadcastAll(new ClientboundTickingStepPacket(ticks));
-      //#else
       CompoundTag tag = new CompoundTag();
-      tag.putInt("TickPlayerActiveTimeout", ticks + TickSpeed.PLAYER_GRACE);
+      tag.putInt("TickPlayerActiveTimeout", ticks +
+              //#if MC >= 12003
+              //$$ 2
+              //#else
+              TickSpeed.PLAYER_GRACE
+              //#endif
+      );
       sendNbt(level, tag);
-      //#endif
     }
 
     CompoundTag tag = new CompoundTag();

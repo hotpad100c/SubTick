@@ -129,7 +129,7 @@ public class HudRenderer
   {
     synchronized(ClientTickHandler.class)
     {
-      if(!ClientTickHandler.frozen || !Configs.SHOW_HUD.getBooleanValue())
+      if(!ClientTickHandler.frozen || !Configs.SHOW_HUD.getBooleanValue() || mc.options.hideGui)
         return;
 
       STEPPED_BG = Configs.STEPPED_BG.getColor();

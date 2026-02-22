@@ -1,18 +1,20 @@
 package subtick.mixins.client;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import com.llamalad7.mixinextras.injector.WrapWithCondition;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import subtick.client.ClientTickHandler;
 
-@SuppressWarnings("all")
+import java.util.function.Consumer;
+
 @Mixin(ClientLevel.class)
 public class ClientLevelMixin
 {
@@ -30,10 +32,15 @@ public class ClientLevelMixin
   }
   //#endif
 
-  @Inject(method = "tickNonPassenger", at = @At("HEAD"), cancellable = true)
-  private void tickNonPassenger(Entity entity, CallbackInfo ci)
+  @com.llamalad7.mixinextras.injector.v2.WrapWithCondition(method = "method_32124", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;guardEntityTick(Ljava/util/function/Consumer;Lnet/minecraft/world/entity/Entity;)V"))
+  private boolean tickNonPassenger(ClientLevel instance, Consumer<?> consumer, Entity entity)
   {
-    if(!ClientTickHandler.shouldTick() && !(entity instanceof Player))
-      ci.cancel();
+    return ClientTickHandler.shouldTick() || canTick(entity);
+  }
+
+  @Unique
+  private boolean canTick(Entity entity) {
+    if (entity instanceof Player) return true;
+    return entity.getPassengers().stream().flatMap(Entity::getSelfAndPassengers).anyMatch(entity1 -> entity1 instanceof Player);
   }
 }

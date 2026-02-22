@@ -11,6 +11,7 @@ import net.minecraft.commands.arguments.TimeArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.ServerTickRateManager;
 import net.minecraft.server.commands.TickCommand;
+import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,6 +23,7 @@ import subtick.Settings;
 import subtick.TickPhase;
 import subtick.util.Translations;
 
+@Debug(export = true)
 @Mixin(value = TickCommand.class, priority = 990)
 public class TickCommandMixin
 {

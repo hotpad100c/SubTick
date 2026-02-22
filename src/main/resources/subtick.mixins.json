@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "MinecraftServerMixin",
+    "ServerChunkCacheMixin",
     "ServerLevelMixin",
     "TickCommandMixin",
     "carpet.ServerNetworkHandlerAccessor",

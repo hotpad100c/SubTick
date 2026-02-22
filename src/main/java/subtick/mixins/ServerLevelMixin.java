@@ -1,6 +1,5 @@
 package subtick.mixins;
 
-import net.minecraft.core.SectionPos;
 import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.server.level.*;
@@ -16,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.llamalad7.mixinextras.injector.WrapWithCondition;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 
 import subtick.TickHandler;
 import subtick.TickPhase;
@@ -179,7 +178,7 @@ public class ServerLevelMixin
 
     UUID uuid = player.getUUID();
     Vec3 currentPos = player.position();
-    Vec2 currentRot = new Vec2(player.getYRot(), player.getXRot());
+    Vec2 currentRot = new Vec2(player.getYHeadRot(), player.getXRot());
 
     Vec3 lastPos = subtick$lastPos.get(uuid);
     Vec2 lastRot = subtick$lastRot.get(uuid);
@@ -215,12 +214,18 @@ public class ServerLevelMixin
                       player.isOnGround()
               )
       );
+      ((ServerLevel)player.level).getChunkSource().broadcast(player,
+              new net.minecraft.network.protocol.game.ClientboundRotateHeadPacket(
+                      player,
+                      (byte)((int)(player.getYHeadRot() * 256.0F / 360.0F))
+              )
+      );
     }
   }
 
+  @Unique
   private boolean isPlayerControlled(Entity entity) {
-    Entity controller = entity.getControllingPassenger();
-    return controller instanceof Player;
+    return entity.getPassengers().stream().flatMap(Entity::getSelfAndPassengers).anyMatch(entity1 -> entity1 instanceof Player);
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;tickBlockEntities()V"))
