@@ -102,7 +102,7 @@ public class LevelRendererMixin
   //$$     tickDelta = shouldUsePausedDelta(entity) ? 1.0F : tickDelta;
   //$$     original.call(instance, entity, cameraX, cameraY, cameraZ, tickDelta, matrices, vertexConsumers);
   //$$}
-  //#elseif MC < 12111
+  //#elseif MC <= 12111
   //$$ @ModifyArgs(method = "extractEntity", at = @At(                value = "INVOKE",
   //$$    target = "Lnet/minecraft/client/renderer/entity/EntityRenderDispatcher;extractEntity(Lnet/minecraft/world/entity/Entity;F)Lnet/minecraft/client/renderer/entity/state/EntityRenderState;"
   //$$ ))

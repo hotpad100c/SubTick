@@ -9,6 +9,9 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.server.ServerTickRateManager;
 //#endif
 //#if MC >= 12105
+//#if MC >= 12106
+//$$ import net.minecraft.server.level.ChunkMap;
+//#endif
 //$$ import net.minecraft.world.level.TicketStorage;
 //#else
 import net.minecraft.server.level.DistanceManager;
@@ -34,9 +37,13 @@ public class ServerChunkCacheMixin {
         return ((ITickHandleable)level.getServer()).tickHandler();
     }
 
-    //#if MC >= 12105
+
+    //#if MC >= 12106
+    //$$ @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/TicketStorage;purgeStaleTickets(Lnet/minecraft/server/level/ChunkMap;)V"))
+    //$$ private boolean purgeStaleTickets(TicketStorage instance, ChunkMap chunkMap) {
+    //#elseif MC >= 12105
     //$$ @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/TicketStorage;purgeStaleTickets()V"))
-    //$$  private boolean purgeStaleTickets(TicketStorage instance) {
+    //$$ private boolean purgeStaleTickets(TicketStorage instance) {
     //#else
     @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/DistanceManager;purgeStaleTickets()V"))
     private boolean purgeStaleTickets(DistanceManager instance) {

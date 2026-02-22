@@ -157,8 +157,12 @@ public class ServerLevelMixin
     for(ChunkHolder holder : Lists.newArrayList(self.chunkMap.getChunks()
     ))
     {
+      //#if MC >= 12006
+      //$$ holder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).ifSuccess(holder::broadcastChanges);
+      //#else
       Optional<LevelChunk> optional = holder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
       optional.ifPresent(holder::broadcastChanges);
+      //#endif
     }
     self.chunkMap.tick();
     return false;
