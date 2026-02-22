@@ -43,6 +43,11 @@
   "subtick.feedback.queueCommand.success.single.exhausted": "已執行 {n} 次 {queue}（佇列已完成）",
   "subtick.feedback.queueCommand.success.multiple": "已執行 {n} 次 {queues}",
   "subtick.feedback.queueCommand.success.multiple.exhausted": "已執行 {n} 次 {queues}（佇列已完成）",
-  "subtick.error.subtick_frozen": "無法開啟原版凍結：Subtick 模式已處於凍結狀態。請先解除 Subtick 凍結。",
-  "subtick.error.vanilla_frozen": "無法開啟 Subtick 凍結：原版遊戲已處於凍結狀態。請先解除原版凍結。"
+  "carpet.rule.subtickDefaultPhase.name": "默認分刻階段",
+  "carpet.rule.subtickTextFormat.name": "普通文本格式",
+  "carpet.rule.subtickNumberFormat.name": "數字文本格式",
+  "carpet.rule.subtickPhaseFormat.name": "階段文本格式",
+  "carpet.rule.subtickDimensionFormat.name": "維度文本格式",
+  "carpet.rule.subtickErrorFormat.name": "錯誤文本格式",
+  "carpet.rule.subtickDefaultRange.name": "默認範圍"
 }
