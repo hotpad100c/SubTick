@@ -116,7 +116,7 @@ public class LevelRendererMixin
   //#if MC >= 12002
   //$$ @Unique
   //$$ private boolean shouldUsePausedDelta(Entity entity) {
-  //$$   return ClientTickHandler.frozen || canTick(entity);
+  //$$   return ClientTickHandler.frozen && !canTick(entity);
   //$$ }
   //$$ @Unique
   //$$ private boolean canTick(Entity entity) {
