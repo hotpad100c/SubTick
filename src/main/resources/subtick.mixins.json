@@ -19,6 +19,7 @@
   "client": [
     "client.ClientLevelMixin",
     "client.ClientNetworkHandlerMixin",
+    "client.ClientPacketListenerMixin",
     "client.EntityMixin",
     "client.GuiMixin",
     "client.LevelRendererMixin"

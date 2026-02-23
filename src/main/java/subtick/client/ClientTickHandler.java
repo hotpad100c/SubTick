@@ -35,6 +35,12 @@ public class ClientTickHandler
     mc.level.tickingEntities.forEach((entity) -> ((IEntity)entity).setCGlowing(false));
   }
 
+  public static void clear() {
+    ClientBlockEntityQueue.end(mc.level);
+    clearQueue();
+    clearRenders();
+  }
+
   public static void setFreeze(CompoundTag tag)
   {
     //#if MC >= 12105

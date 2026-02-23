@@ -116,7 +116,12 @@ public class LevelRendererMixin
   //#if MC >= 12002
   //$$ @Unique
   //$$ private boolean shouldUsePausedDelta(Entity entity) {
-  //$$   return ClientTickHandler.frozen && !(entity instanceof Player) && entity.getPassengers().stream().noneMatch(entity1 -> entity1 instanceof Player);
+  //$$   return ClientTickHandler.frozen || canTick(entity);
+  //$$ }
+  //$$ @Unique
+  //$$ private boolean canTick(Entity entity) {
+  //$$  if (entity instanceof Player) return true;
+  //$$  return entity.getPassengers().stream().flatMap(Entity::getSelfAndPassengers).anyMatch(entity1 -> entity1 instanceof Player);
   //$$ }
   //#endif
 }
