@@ -23,7 +23,7 @@ public class PhaseCommand
     dispatcher.register(
       literal("phaseStep")
               //#if MC >= 12111
-              //$$ Commands.LEVEL_GAMEMASTERS.check(source.permissions());
+              //$$ .requires(c -> Commands.LEVEL_GAMEMASTERS.check(c.permissions()))
               //#else
               .requires(c -> c.hasPermission(2))
               //#endif
