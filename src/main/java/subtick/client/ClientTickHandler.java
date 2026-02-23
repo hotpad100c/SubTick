@@ -32,6 +32,7 @@ public class ClientTickHandler
   private static void clearRenders()
   {
     LevelRenderer.clear();
+    assert mc.level != null;
     mc.level.tickingEntities.forEach((entity) -> ((IEntity)entity).setCGlowing(false));
   }
 
@@ -39,6 +40,7 @@ public class ClientTickHandler
     ClientBlockEntityQueue.end(mc.level);
     clearQueue();
     clearRenders();
+    frozen = false;
   }
 
   public static void setFreeze(CompoundTag tag)
