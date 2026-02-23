@@ -21,6 +21,11 @@ public class TickCommand
   {
     dispatcher.register(
       literal("tick")
+              //#if MC >= 12111
+              //$$ Commands.LEVEL_GAMEMASTERS.check(source.permissions());
+              //#else
+              .requires(c -> c.hasPermission(2))
+              //#endif
       //.then(literal("debug")
       //  .executes((c) -> ITickHandler.get(c).printDebugInfo(c.getSource()))
       //)

@@ -22,6 +22,11 @@ public class PhaseCommand
   {
     dispatcher.register(
       literal("phaseStep")
+              //#if MC >= 12111
+              //$$ Commands.LEVEL_GAMEMASTERS.check(source.permissions());
+              //#else
+              .requires(c -> c.hasPermission(2))
+              //#endif
       .then(argument("count", integer(1))
         .executes((c) -> ITickHandler.get(c).phaseStep(c.getSource(), getInteger(c, "count")))
       )
