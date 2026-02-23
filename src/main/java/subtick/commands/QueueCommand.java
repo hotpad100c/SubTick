@@ -22,6 +22,9 @@ import static com.mojang.brigadier.arguments.StringArgumentType.word;
 import subtick.IQueues;
 import subtick.Settings;
 import subtick.queues.TickingQueue;
+//#if MC >= 12111
+//$$ import net.minecraft.commands.Commands;
+//#endif
 
 public class QueueCommand
 {

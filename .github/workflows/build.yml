@@ -58,6 +58,27 @@ jobs:
         with:
           name: build-artifacts
           path: versions/*/build/libs/
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: versions/*/build/libs/
+
+      - name: Collect mod jars
+        run: |
+          shopt -s extglob
+          mkdir mod-jars
+          for jar in versions/*/build/libs/!(*-@(dev|sources|shadow)).jar; do
+              cp -p "$jar" mod-jars/
+          done
+          ls -l mod-jars
+
+      # This is the artifact recommended for users to download
+      - name: Upload mod jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: mod-jars
+          path: mod-jars/*.jar
 
   summary:
     runs-on: ubuntu-22.04

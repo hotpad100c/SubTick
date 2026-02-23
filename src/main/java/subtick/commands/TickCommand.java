@@ -14,6 +14,9 @@ import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
 import subtick.ITickHandler;
 import subtick.TickPhase;
+//#if MC >= 12111
+//$$ import net.minecraft.commands.Commands;
+//#endif
 
 public class TickCommand
 {
