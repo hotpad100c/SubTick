@@ -7,6 +7,7 @@ import java.util.Map;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.google.gson.Strictness;
 import com.google.gson.stream.JsonReader;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.serialization.JsonOps;
@@ -189,7 +190,7 @@ public class HudRenderer
 
     private static Component text(QueueElement element, int i, boolean depth)
     {
-
+        assert Minecraft.getInstance().level != null;
         return depth ?
                 fromJsonLenient(String.format("[\"#%d (\", {\"color\":\"%s\",\"text\":\"%d\"}, \"): %s\"]", i, color(i <= ClientTickHandler.queueIndex1 ? Configs.STEPPED_DEPTH : i <= ClientTickHandler.queueIndex2 ? Configs.STEPPING_DEPTH : i >= ClientTickHandler.queue.size() - ClientTickHandler.newQueueElementCount ? Configs.NEW_DEPTH : Configs.TO_STEP_DEPTH), element.depth(), element.label())
                         , Minecraft.getInstance().level.registryAccess()
@@ -204,7 +205,7 @@ public class HudRenderer
     @Nullable
     public static MutableComponent fromJsonLenient(String string, HolderLookup.Provider provider) {
         JsonReader jsonReader = new JsonReader(new StringReader(string));
-        jsonReader.setLenient(true);
+        jsonReader.setStrictness(Strictness.LENIENT);
         JsonElement jsonElement = JsonParser.parseReader(jsonReader);
         return jsonElement == null ? null : deserialize(jsonElement, provider);
     }
