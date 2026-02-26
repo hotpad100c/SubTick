@@ -33,7 +33,7 @@ public class BlockEntityQueue extends TickingQueue
 
     queue.clear();
     for(TickingBlockEntity be : level.blockEntityTickers) {
-        if (be != null) {
+        if (be != null && be.getPos() != null) {
             queue.add(new QueueElement(be));
         }
     }

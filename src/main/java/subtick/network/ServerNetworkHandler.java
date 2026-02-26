@@ -6,7 +6,6 @@ import carpet.CarpetSettings;
 //#if MC < 12003
 import carpet.helpers.TickSpeed;
 //#endif
-import carpet.network.CarpetClient;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -30,9 +29,8 @@ public class ServerNetworkHandler
 
   public static void sendNbt(ServerPlayer player, CompoundTag tag, CommandSourceStack actor)
   {
-    //#if MC < 12003
+    //#if MC < 12005
     FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
-    packetBuf.writeVarInt(CarpetClient.DATA);
     packetBuf.writeNbt(tag);
     //#endif
 
@@ -58,9 +56,8 @@ public class ServerNetworkHandler
 
   public static void sendNbt(ServerPlayer player, CompoundTag tag)
   {
-    //#if MC < 12003
+    //#if MC < 12005
     FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
-    packetBuf.writeVarInt(CarpetClient.DATA);
     packetBuf.writeNbt(tag);
     //#endif
 
