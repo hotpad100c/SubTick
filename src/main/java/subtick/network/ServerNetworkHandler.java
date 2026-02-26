@@ -7,64 +7,47 @@ import carpet.CarpetSettings;
 import carpet.helpers.TickSpeed;
 //#endif
 import carpet.network.CarpetClient;
-import carpet.network.ClientNetworkHandler;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
-import net.minecraft.client.Minecraft;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import subtick.QueueElement;
+import subtick.SubTick;
 import subtick.TickPhase;
-import subtick.mixins.carpet.ServerNetworkHandlerAccessor;
 import subtick.util.Translations;
+//#if MC >= 12005
+//$$ import subtick.network.packet.SubTickPayload;
+//#endif
 
 
 public class ServerNetworkHandler
 {
-  private static boolean tryClient(ServerLevel level, CompoundTag tag)
-  {
-    if(level.server.isDedicatedServer())
-      return false;
-    //#if MC < 12003
-    FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
-    packetBuf.writeVarInt(CarpetClient.DATA);
-    packetBuf.writeNbt(tag);
-    //#endif
-    Minecraft minecraft = Minecraft.getInstance();
-    //#if MC >= 12003
-    //$$ if (minecraft.player != null) {
-    //$$    ClientNetworkHandler.onServerData(tag, minecraft.player);
-    //$$    return true;
-    //$$  }
-    //#else
-    ClientNetworkHandler.handleData(packetBuf, minecraft.player);
-    //#endif
-    return true;
-  }
 
   public static void sendNbt(ServerPlayer player, CompoundTag tag, CommandSourceStack actor)
   {
-    ServerLevel level = player.getLevel();
-    if(tryClient(level, tag))
-      return;
-
     //#if MC < 12003
     FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
     packetBuf.writeVarInt(CarpetClient.DATA);
     packetBuf.writeNbt(tag);
+    //#endif
+
+    //#if MC >= 12005
+    //$$ if (!ServerPlayNetworking.canSend(player, SubTickPayload.TYPE)) return;
+    //#else
+    if (!ServerPlayNetworking.canSend(player, SubTick.SUBTICK_PACKET_ID)) return;
     //#endif
 
     try
     {
-      //#if MC >= 12003
-      //$$ player.connection.send(new ClientboundCustomPayloadPacket(new CarpetClient.CarpetPayload(tag)));
+      //#if MC >= 12005
+      //$$ ServerPlayNetworking.send(player, new SubTickPayload(tag));
       //#else
-      player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
+      ServerPlayNetworking.send(player, SubTick.SUBTICK_PACKET_ID, packetBuf);
       //#endif
     }
     catch(IllegalArgumentException e)
@@ -75,22 +58,24 @@ public class ServerNetworkHandler
 
   public static void sendNbt(ServerPlayer player, CompoundTag tag)
   {
-    ServerLevel level = player.getLevel();
-    if(tryClient(level, tag))
-      return;
-
     //#if MC < 12003
     FriendlyByteBuf packetBuf = new FriendlyByteBuf(Unpooled.buffer());
     packetBuf.writeVarInt(CarpetClient.DATA);
     packetBuf.writeNbt(tag);
     //#endif
 
+    //#if MC >= 12005
+    //$$ if (!ServerPlayNetworking.canSend(player, SubTickPayload.TYPE)) return;
+    //#else
+    if (!ServerPlayNetworking.canSend(player, SubTick.SUBTICK_PACKET_ID)) return;
+    //#endif
+
     try
     {
-      //#if MC >= 12003
-      //$$ player.connection.send(new ClientboundCustomPayloadPacket(new CarpetClient.CarpetPayload(tag)));
+      //#if MC >= 12005
+      //$$ ServerPlayNetworking.send(player, new SubTickPayload(tag));
       //#else
-      player.connection.send(new ClientboundCustomPayloadPacket(CarpetClient.CARPET_CHANNEL, packetBuf));
+      ServerPlayNetworking.send(player, SubTick.SUBTICK_PACKET_ID, packetBuf);
       //#endif
     }
     catch(IllegalArgumentException e)
@@ -99,10 +84,8 @@ public class ServerNetworkHandler
 
   public static void sendNbt(ServerLevel level, CompoundTag tag, CommandSourceStack actor)
   {
-    if(tryClient(level, tag))
-      return;
 
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
+    for(ServerPlayer player : level.getServer().getPlayerList().getPlayers())
     {
       if(player.getLevel() != level) continue;
 
@@ -112,10 +95,7 @@ public class ServerNetworkHandler
 
   public static void sendNbt(ServerLevel level, CompoundTag tag)
   {
-    if(tryClient(level, tag))
-      return;
-
-    for(ServerPlayer player : ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().keySet())
+    for(ServerPlayer player : level.getServer().getPlayerList().getPlayers())
     {
       if(player.getLevel() != level) continue;
 
@@ -149,7 +129,7 @@ public class ServerNetworkHandler
 
   public static void sendFrozen(ServerPlayer player, boolean frozen, TickPhase tickPhase)
   {
-    if(CarpetSettings.superSecretSetting || !ServerNetworkHandlerAccessor.getRemoteCarpetPlayers().containsKey(player))
+    if(CarpetSettings.superSecretSetting)
       return;
 
     CompoundTag tag = new CompoundTag();

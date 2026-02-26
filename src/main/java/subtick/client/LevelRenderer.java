@@ -20,6 +20,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.phys.Vec3;
 //#if MC >= 11900
 //$$ import org.joml.Matrix4fStack;

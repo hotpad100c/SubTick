@@ -4,18 +4,27 @@ import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import carpet.CarpetSettings;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import subtick.client.ClientNetworkHandler;
 import subtick.commands.TickCommand;
 import subtick.util.Translations;
 import subtick.commands.PhaseCommand;
 import subtick.commands.QueueCommand;
-
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+//#if MC >= 12005
+//$$ import subtick.network.PacketRegister;
+//$$ import subtick.network.packet.SubTickPayload;
+//#endif
 
 //#if MC >= 11903
 //$$ import net.minecraft.commands.CommandBuildContext;
@@ -27,6 +36,9 @@ public class SubTick implements CarpetExtension, ModInitializer
   public static final Logger LOGGER = LogManager.getLogger();
 
   public static final String MOD_ID = "subtick";
+  //#if MC < 12005
+  public static final ResourceLocation SUBTICK_PACKET_ID = new ResourceLocation(MOD_ID, "subtick_payload");
+  //#endif
   public static String MOD_NAME = "";
   public static String MOD_VERSION = "";
   public static final boolean hasLithium = FabricLoader.getInstance().isModLoaded("lithium");
@@ -35,6 +47,10 @@ public class SubTick implements CarpetExtension, ModInitializer
   public void onInitialize()
   {
     CarpetServer.manageExtension(new SubTick());
+    //#if MC >= 12005
+    //$$ PacketRegister.s2c();
+    //#endif
+    registerNetworkPackReceiver();
   }
 
   @Override
@@ -84,4 +100,39 @@ public class SubTick implements CarpetExtension, ModInitializer
   //     TickPhase.ENTITY_MANAGEMENT
   //   };
   // }
+
+  private static void registerNetworkPackReceiver() {
+    ClientPlayNetworking.registerGlobalReceiver(
+            //#if MC < 12005
+            SUBTICK_PACKET_ID,
+            //#else
+            //$$ SubTickPayload.TYPE,
+            //#endif
+            //#if MC < 12005
+            (client, handler, buf, responseSender) -> {
+              CompoundTag tag = buf.readNbt();
+              client.execute(() -> {
+                  if (tag != null) {
+                      ClientNetworkHandler.handlePacket(tag, client.player);
+                  }
+              });
+            }
+            //#else
+            //$$ (payload, context) -> context.client().execute(() ->
+            //$$        ClientNetworkHandler.handlePacket(payload.tag(), context.client().player)
+            //$$ )
+            //#endif
+    );
+  }
+
+  @Override
+  public void onPlayerLoggedIn(ServerPlayer player) {
+    //#if MC >= 12005
+    //$$ if (!ServerPlayNetworking.canSend(player, SubTickPayload.TYPE)) return;
+    //#else
+    if (!ServerPlayNetworking.canSend(player, SubTick.SUBTICK_PACKET_ID)) return;
+    //#endif
+    ITickHandler tickHandler = ((ITickHandleable)player.getLevel().getServer()).tickHandler();
+    subtick.network.ServerNetworkHandler.sendFrozen(player, tickHandler.frozen(), tickHandler.currentPhase());
+  }
 }

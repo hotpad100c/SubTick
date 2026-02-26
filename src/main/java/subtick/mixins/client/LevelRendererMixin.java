@@ -27,13 +27,12 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
-
+import net.minecraft.client.Minecraft;
 //#if MC < 12002
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import carpet.fakes.MinecraftClientInferface;
-import net.minecraft.client.Minecraft;
 //#endif
 //#if MC >= 12003
 //$$ import com.llamalad7.mixinextras.sugar.Local;
@@ -71,7 +70,7 @@ public class LevelRendererMixin
   ))
   private float changeTickPhase(float previous)
   {
-    initial = previous;
+      initial = previous;
     if(ClientTickHandler.frozen)
       return ((MinecraftClientInferface)minecraft).getPausedTickDelta();
     return previous;
@@ -116,6 +115,7 @@ public class LevelRendererMixin
   //#if MC >= 12002
   //$$ @Unique
   //$$ private boolean shouldUsePausedDelta(Entity entity) {
+////$$   if (Minecraft.getInstance().getSingleplayerServer() != null) if (isReplayEnvironment(Minecraft.getInstance().getSingleplayerServer().getClass())) return false;
   //$$   return ClientTickHandler.frozen && !canTick(entity);
   //$$ }
   //$$ @Unique

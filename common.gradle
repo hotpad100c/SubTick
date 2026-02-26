@@ -70,9 +70,7 @@ dependencies {
     autoImplementation "fi.dy.masa.malilib:malilib-fabric-${project.malilib_version}"
   }
   autoImplementation "com.terraformersmc:modmenu:${project.mod_menu_version}"
-  if (mcVersion >= 12006) {
-    autoImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-  }
+  autoImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
 JavaVersion JAVA_COMPATIBILITY
