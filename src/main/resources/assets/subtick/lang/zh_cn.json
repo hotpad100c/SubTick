@@ -37,7 +37,7 @@
   "subtick.feedback.tickCommand.step.success.multiple": "执行了 {n} 刻，结束于 {dim} 的 {phase} 阶段",
   "subtick.feedback.tickCommand.step.err.unloaded": "step未能完成；目标为 {dim} 的 {phase} 阶段，但该阶段在维度未加载时不会执行。请加载 {dim} 以完成操作。怪 Mojang 吧",
   "subtick.feedback.queueCommand.err.packetSize": "未发送高亮信息，因为数据包大小超出上限。请减少数量以查看高亮。",
-  "subtick.feedback.queueCommand.err.crash": "在执行 {queue} 时崩溃（{stack}）",
+  "subtick.feedback.queueCommand.err.crash": "在执行 {queue} 时崩溃",
   "subtick.feedback.queueCommand.err.exhausted": "{queue} 队列已完成",
   "subtick.feedback.queueCommand.success.single": "已执行 {n} 次 {queue}",
   "subtick.feedback.queueCommand.success.single.exhausted": "已执行 {n} 次 {queue}（队列已完成）",

@@ -29,14 +29,13 @@ public class BlockEntityQueue extends TickingQueue
       level.blockEntityTickers.addAll(level.pendingBlockEntityTickers);
       level.pendingBlockEntityTickers.clear();
     }
-    block_entity_iterator = level.blockEntityTickers.iterator();
+    try {
+      block_entity_iterator = level.blockEntityTickers.iterator();
 
-    queue.clear();
-    for(TickingBlockEntity be : level.blockEntityTickers) {
-        if (be != null && be.getPos() != null) {
-            queue.add(new QueueElement(be));
-        }
-    }
+      queue.clear();
+      for (TickingBlockEntity be : level.blockEntityTickers)
+        queue.add(new QueueElement(be));
+    } catch (Exception ignored) {}
   }
 
   @Override
@@ -44,25 +43,23 @@ public class BlockEntityQueue extends TickingQueue
   {
     int executed_steps = 0;
     int success_steps = 0;
+    try {
+      while (success_steps < count && block_entity_iterator.hasNext()) {
+        TickingBlockEntity ticker = block_entity_iterator.next();
+        BlockPos tpos = ticker.getPos();
+        if (tpos == null) {
+          queue.remove(new QueueElement(ticker));
+          continue;
+        } else if (rangeCheck(tpos, pos, range))
+          success_steps++;
+        executed_steps++;
 
-    while(success_steps < count && block_entity_iterator.hasNext())
-    {
-      TickingBlockEntity ticker = block_entity_iterator.next();
-      BlockPos tpos = ticker.getPos();
-      if(tpos == null)
-      {
-        queue.remove(new QueueElement(ticker));
-        continue;
+        if (ticker.isRemoved())
+          block_entity_iterator.remove();
+        else
+          ticker.tick();
       }
-      else if(rangeCheck(tpos, pos, range))
-        success_steps ++;
-      executed_steps ++;
-
-      if(ticker.isRemoved())
-        block_entity_iterator.remove();
-      else
-        ticker.tick();
-    }
+    } catch (Exception ignored) {}
     return Triple.of(executed_steps, success_steps, exhausted = !block_entity_iterator.hasNext());
   }
 
