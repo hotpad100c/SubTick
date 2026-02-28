@@ -1,9 +1,11 @@
 package subtick.mixins.client;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+
 import net.minecraft.world.level.block.entity.BlockEntity;
 import subtick.client.ClientTickHandler;
 import org.spongepowered.asm.mixin.Mixin;
@@ -51,7 +53,7 @@ import carpet.fakes.MinecraftClientInferface;
 public class LevelRendererMixin
 {
   //#if MC < 12101
-  @Inject(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderEntity(Lnet/minecraft/world/entity/Entity;DDDFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V"))
+  @Inject(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/RenderBuffers;bufferSource()Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;"))
   private void onRenderWorldLastNormal(
           //#if MC >= 12006
           //$$ float f, long l, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci, @Local PoseStack poseStack
@@ -63,6 +65,23 @@ public class LevelRendererMixin
     OutlineBufferSource outlineBufferSource = this.renderBuffers.outlineBufferSource();
     subtick.client.LevelRenderer.render(poseStack, outlineBufferSource);
   }
+
+  @WrapMethod(method = "shouldShowEntityOutlines()Z")
+  private boolean forceEntityOutline(Operation<Boolean> original) {
+    return subtick.client.LevelRenderer.hasOutline() || original.call();
+  }
+  @ModifyVariable(
+          method = "renderLevel",
+          at = @At("STORE"),
+          ordinal = 2
+          // 目标是代码中的 boolean bl4 = false;
+          // 也就是该函数中第三个使用 “STORE” 指令的布尔变量
+          // 在较新的版本中可能需要进行调整！！！
+  )
+  private boolean forceEntityOutline2(boolean bl4) {
+       return subtick.client.LevelRenderer.hasOutline() || bl4;
+  }
+
   //#endif
 
 
@@ -73,6 +92,7 @@ public class LevelRendererMixin
   private void modifyBlockEntityDelta(BlockEntityRenderDispatcher instance, BlockEntity blockEntity, float f, PoseStack poseStack, MultiBufferSource multiBufferSource, Operation<Void> original) {
     if (ClientTickHandler.frozen) f = 1.0f;
     original.call(instance, blockEntity, f, poseStack, multiBufferSource);
+
   }
   //#endif
 
@@ -99,6 +119,10 @@ public class LevelRendererMixin
     target = "Lnet/minecraft/client/particle/ParticleEngine;render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;F)V",
     shift = At.Shift.BEFORE
   ))
+
+
+
+
   private float changeTickPhaseBack(float previous)
   {
     return initial == -1234.0f ? previous : initial;

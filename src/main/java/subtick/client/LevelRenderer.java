@@ -18,6 +18,7 @@ import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -53,7 +54,8 @@ public class LevelRenderer
     for(Pos pos : hlPos) {
       pos.render(ps, camera, outlineBufferSource, mc.level);
     }
-    outlineBufferSource.endOutlineBatch();
+
+    //outlineBufferSource.endOutlineBatch();
     //#if MC < 12006
     //$$ PoseStack poseStack = RenderSystem.getModelViewStack();
     //#endif
@@ -74,6 +76,9 @@ public class LevelRenderer
   {
     hlPos.clear();
     texts.clear();
+  }
+  public static synchronized boolean hasOutline(){
+    return !hlPos.isEmpty();
   }
 
   public static synchronized void addOutline(BlockPos pos, Color4f color) {
@@ -126,33 +131,40 @@ public class LevelRenderer
     @Override
     public void render(PoseStack poseStack, Camera camera, OutlineBufferSource outlineBufferSource, Level level)
     {
+
+      BlockState state = level.getBlockState(pos);
+      BlockRenderDispatcher blockRenderManager = mc.getBlockRenderer();
+      BlockEntity blockEntity = level.getBlockEntity(pos);
+
       this.setOutlineColor(outlineBufferSource, color.intValue);
       poseStack.pushPose();
       Vec3 cpos = camera.getPosition();
       poseStack.translate(pos.getX() - cpos.x, pos.getY() - cpos.y, pos.getZ() - cpos.z);
-      BlockEntity blockEntity = level.getBlockEntity(pos);
+
       if (blockEntity != null) {
         BlockEntityRenderDispatcher blockEntityRenderDispatcher = mc.getBlockEntityRenderDispatcher();
         blockEntityRenderDispatcher.render(blockEntity, 0.0f, poseStack, outlineBufferSource);
-      } else {
-        BlockState state = level.getBlockState(pos);
-        BlockRenderDispatcher blockRenderManager = mc.getBlockRenderer();
-        if (state.getRenderShape() != RenderShape.MODEL) {
-          return;
-        }
-        BakedModel model = blockRenderManager.getBlockModel(state);
-        VertexConsumer vertexConsumer = outlineBufferSource.getBuffer(ItemBlockRenderTypes.getRenderType(state, false));
-        InvisibleVertexConsumer invisibleConsumer = new InvisibleVertexConsumer(vertexConsumer);
-        blockRenderManager.getModelRenderer().renderModel(
-                poseStack.last(),
-                invisibleConsumer,
-                state,
-                model,
-                color.r, color.g, color.b,
-                net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos),
-                OverlayTexture.NO_OVERLAY
-        );
       }
+
+      if (state.getRenderShape() != RenderShape.MODEL) {
+        poseStack.popPose();
+        return;
+      }
+
+      BakedModel model = blockRenderManager.getBlockModel(state);
+      VertexConsumer vertexConsumer = outlineBufferSource.getBuffer(RenderType.entityTranslucent(TextureAtlas.LOCATION_BLOCKS));
+      InvisibleVertexConsumer invisibleConsumer = new InvisibleVertexConsumer(vertexConsumer);
+      blockRenderManager.getModelRenderer().renderModel(
+              poseStack.last(),
+              invisibleConsumer,
+              state,
+              model,
+              color.r, color.g, color.b,
+              net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos),
+              OverlayTexture.NO_OVERLAY
+      );
+
+      outlineBufferSource.setColor(255,255,255,255);
       poseStack.popPose();
     }
 
@@ -179,32 +191,38 @@ public class LevelRenderer
 
     @Override
     public @NotNull VertexConsumer vertex(double d, double e, double f) {
-      return this.delegate.vertex(d, e, f);
+      this.delegate.vertex(d, e, f);
+      return this;
     }
 
     @Override
     public @NotNull VertexConsumer color(int red, int green, int blue, int alpha) {
-      return this.delegate.color(red, green, blue, 0);
+      this.delegate.color(red, green, blue, 0);
+      return this;
     }
 
     @Override
     public @NotNull VertexConsumer uv(float u, float v) {
-      return this.delegate.uv(u, v);
+      this.delegate.uv(u, v);
+      return this;
     }
 
     @Override
     public @NotNull VertexConsumer overlayCoords(int u, int v) {
-      return this.delegate.overlayCoords(u, v);
+      this.delegate.overlayCoords(u, v);
+      return this;
     }
 
     @Override
     public @NotNull VertexConsumer uv2(int u, int v) {
-      return this.delegate.uv2(u, v);
+      this.delegate.uv2(u, v);
+      return this;
     }
 
     @Override
     public @NotNull VertexConsumer normal(float x, float y, float z) {
-      return this.delegate.normal(x, y, z);
+     this.delegate.normal(x, y, z);
+      return this;
     }
 
     @Override
