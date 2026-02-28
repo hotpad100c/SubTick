@@ -2,7 +2,7 @@ package subtick.mixins.client;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import subtick.client.ClientTickHandler;
@@ -29,9 +29,6 @@ import com.mojang.math.Matrix4f;
 //#endif
 
 import net.minecraft.client.Camera;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.Minecraft;
 //#if MC < 12002
 import org.spongepowered.asm.mixin.Final;
@@ -54,7 +51,7 @@ import carpet.fakes.MinecraftClientInferface;
 public class LevelRendererMixin
 {
   //#if MC < 12101
-  @Inject(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderSnowAndRain(Lnet/minecraft/client/renderer/LightTexture;FDDD)V", ordinal = 1))
+  @Inject(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderEntity(Lnet/minecraft/world/entity/Entity;DDDFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V"))
   private void onRenderWorldLastNormal(
           //#if MC >= 12006
           //$$ float f, long l, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci, @Local PoseStack poseStack
@@ -63,7 +60,8 @@ public class LevelRendererMixin
           //#endif
   )
   {
-    subtick.client.LevelRenderer.render(poseStack);
+    OutlineBufferSource outlineBufferSource = this.renderBuffers.outlineBufferSource();
+    subtick.client.LevelRenderer.render(poseStack, outlineBufferSource);
   }
   //#endif
 
@@ -80,6 +78,9 @@ public class LevelRendererMixin
 
   //#if MC < 12002
   @Shadow @Final private Minecraft minecraft;
+  @Shadow
+  @Final
+  private RenderBuffers renderBuffers;
   float initial = -1234.0f;
 
   @ModifyVariable(method = "renderLevel", argsOnly = true, require = 0, ordinal = 0, at = @At(

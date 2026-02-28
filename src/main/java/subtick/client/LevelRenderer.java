@@ -4,11 +4,7 @@ import java.util.HashSet;
 import java.util.Objects;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.*;
 //#if MC < 11900
 import com.mojang.math.Quaternion;
 //#endif
@@ -18,10 +14,18 @@ import fi.dy.masa.malilib.util.Color4f;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.client.renderer.*;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.NotNull;
 //#if MC >= 11900
 //$$ import org.joml.Matrix4fStack;
 //$$ import org.joml.Quaternionf;
@@ -31,11 +35,10 @@ public class LevelRenderer
 {
   private static final Minecraft mc = Minecraft.getInstance();
   private static final Font font = mc.font;
-  private static final HashSet<Line> lines = new HashSet<>();
-  private static final HashSet<Quad> quads = new HashSet<>();
+  private static final HashSet<Pos> hlPos = new HashSet<>();
   private static final HashSet<Text> texts = new HashSet<>();
 
-  public static synchronized void render(PoseStack ps)
+  public static synchronized void render(PoseStack ps, OutlineBufferSource outlineBufferSource)
   {
     RenderSystem.setShader(GameRenderer::getPositionColorShader);
     RenderSystem.enableBlend();
@@ -46,15 +49,11 @@ public class LevelRenderer
 
     Tesselator tesselator = Tesselator.getInstance();
     BufferBuilder buffer = tesselator.getBuilder();
-    buffer.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
-    for(Line line : lines)
-      line.render(buffer, cpos.x, cpos.y, cpos.z);
-    tesselator.end();
 
-    buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-    for(Quad quad : quads)
-      quad.render(buffer, cpos.x, cpos.y, cpos.z);
-    tesselator.end();
+    for(Pos pos : hlPos) {
+      pos.render(ps, camera, outlineBufferSource, mc.level);
+    }
+    outlineBufferSource.endOutlineBatch();
     //#if MC < 12006
     //$$ PoseStack poseStack = RenderSystem.getModelViewStack();
     //#endif
@@ -73,44 +72,15 @@ public class LevelRenderer
 
   public static synchronized void clear()
   {
-    lines.clear();
-    quads.clear();
+    hlPos.clear();
     texts.clear();
   }
 
-  public static void addCuboid(int x, int y, int z, Color4f color)
-  {
-    addCuboidFaces(x, y, z, x+1, y+1, z+1, color);
-    addCuboidEdges(x, y, z, x+1, y+1, z+1, color);
-  }
-
-  public static void addCuboidFaces(int x, int y, int z, Color4f color)
-  {
-    addCuboidFaces(x, y, z, x+1, y+1, z+1, color);
-  }
-
-  public static void addCuboidEdges(int x, int y, int z, Color4f color)
-  {
-    addCuboidEdges(x, y, z, x+1, y+1, z+1, color);
-  }
-
-  public static synchronized void addCuboidFaces(double x, double y, double z, double X, double Y, double Z, Color4f color)
-  {
-    QuadCuboid o = new QuadCuboid(x, y, z, X, Y, Z, color);
-    if(!quads.add(o))
-    {
-      quads.remove(o);
-      quads.add(o);
-    }
-  }
-
-  public static synchronized void addCuboidEdges(double x, double y, double z, double X, double Y, double Z, Color4f color)
-  {
-    LineCuboid o = new LineCuboid(x, y, z, X, Y, Z, color);
-    if(!lines.add(o))
-    {
-      lines.remove(o);
-      lines.add(o);
+  public static synchronized void addOutline(BlockPos pos, Color4f color) {
+    Outline o = new Outline(pos, color);
+    if(!hlPos.add(o)) {
+      hlPos.remove(o);
+      hlPos.add(o);
     }
   }
 
@@ -134,117 +104,122 @@ public class LevelRenderer
     }
   }
 
-  private static interface Line
+  private static interface Pos
   {
-    public void render(BufferBuilder buffer, double cx, double cy, double cz);
+    public void render(PoseStack poseStack, Camera camera, OutlineBufferSource outlineBufferSource, Level level);
   }
 
-  private static record LineCuboid(double x, double y, double z, double X, double Y, double Z, Color4f color) implements Line
+  private static record Outline(BlockPos pos, Color4f color) implements Pos
   {
     @Override
     public boolean equals(Object b)
     {
-      return b instanceof LineCuboid o && o.x == x && o.y == y && o.z == z && o.X == X && o.Y == Y && o.Z == Z;
+      return b instanceof Outline o && o.pos.getX() == pos.getX() && o.pos.getY() == pos.getY() && o.pos.getZ() == pos.getZ();
     }
 
     @Override
     public int hashCode()
     {
-      return Objects.hash(x, y, z, X, Y, Z);
-    }
-
-    public void render(BufferBuilder buffer, double cx, double cy, double cz)
-    {
-      double x = this.x - cx, y = this.y - cy, z = this.z - cz;
-      double X = this.X - cx, Y = this.Y - cy, Z = this.Z - cz;
-      buffer.vertex(x, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-
-      buffer.vertex(X, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
-
-      buffer.vertex(X, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
-
-      buffer.vertex(x, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-
-      buffer.vertex(X, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-
-      buffer.vertex(x, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-
-      buffer.vertex(X, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-
-      buffer.vertex(X, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-
-      buffer.vertex(X, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-
-      buffer.vertex(x, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-    }
-  }
-
-  private static interface Quad
-  {
-    public void render(BufferBuilder buffer, double cx, double cy, double cz);
-  }
-
-  private static record QuadCuboid(double x, double y, double z, double X, double Y, double Z, Color4f color) implements Quad
-  {
-    @Override
-    public boolean equals(Object b)
-    {
-      return b instanceof QuadCuboid o && o.x == x && o.y == y && o.z == z && o.X == X && o.Y == Y && o.Z == Z;
+      return Objects.hash(pos);
     }
 
     @Override
-    public int hashCode()
+    public void render(PoseStack poseStack, Camera camera, OutlineBufferSource outlineBufferSource, Level level)
     {
-      return Objects.hash(x, y, z, X, Y, Z);
+      this.setOutlineColor(outlineBufferSource, color.intValue);
+      poseStack.pushPose();
+      Vec3 cpos = camera.getPosition();
+      poseStack.translate(pos.getX() - cpos.x, pos.getY() - cpos.y, pos.getZ() - cpos.z);
+      BlockEntity blockEntity = level.getBlockEntity(pos);
+      if (blockEntity != null) {
+        BlockEntityRenderDispatcher blockEntityRenderDispatcher = mc.getBlockEntityRenderDispatcher();
+        blockEntityRenderDispatcher.render(blockEntity, 0.0f, poseStack, outlineBufferSource);
+      } else {
+        BlockState state = level.getBlockState(pos);
+        BlockRenderDispatcher blockRenderManager = mc.getBlockRenderer();
+        if (state.getRenderShape() != RenderShape.MODEL) {
+          return;
+        }
+        BakedModel model = blockRenderManager.getBlockModel(state);
+        VertexConsumer vertexConsumer = outlineBufferSource.getBuffer(ItemBlockRenderTypes.getRenderType(state, false));
+        InvisibleVertexConsumer invisibleConsumer = new InvisibleVertexConsumer(vertexConsumer);
+        blockRenderManager.getModelRenderer().renderModel(
+                poseStack.last(),
+                invisibleConsumer,
+                state,
+                model,
+                color.r, color.g, color.b,
+                net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos),
+                OverlayTexture.NO_OVERLAY
+        );
+      }
+      poseStack.popPose();
     }
 
-    public void render(BufferBuilder buffer, double cx, double cy, double cz)
-    {
-      double x = this.x - cx, y = this.y - cy, z = this.z - cz;
-      double X = this.X - cx, Y = this.Y - cy, Z = this.Z - cz;
-      buffer.vertex(x, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
+    public void setOutlineColor(OutlineBufferSource outlineProvider, int color) {
+      int red = (color >> 16) & 0xFF;
+      int green = (color >> 8) & 0xFF;
+      int blue = color & 0xFF;
+      int alpha = (color >> 24) & 0xFF;
 
-      buffer.vertex(X, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
+      if (alpha == 0) {
+        alpha = 255;
+      }
 
-      buffer.vertex(x, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, y, z).color(color.r, color.g, color.b, color.a).endVertex();
+      outlineProvider.setColor(red, green, blue, alpha);
+    }
+  }
 
-      buffer.vertex(x, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
+  private static class InvisibleVertexConsumer implements VertexConsumer {
+    private final VertexConsumer delegate;
 
-      buffer.vertex(x, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, Y, z).color(color.r, color.g, color.b, color.a).endVertex();
+    public InvisibleVertexConsumer(VertexConsumer delegate) {
+      this.delegate = delegate;
+    }
 
-      buffer.vertex(x, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(x, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, Y, Z).color(color.r, color.g, color.b, color.a).endVertex();
-      buffer.vertex(X, y, Z).color(color.r, color.g, color.b, color.a).endVertex();
+    @Override
+    public @NotNull VertexConsumer vertex(double d, double e, double f) {
+      return this.delegate.vertex(d, e, f);
+    }
+
+    @Override
+    public @NotNull VertexConsumer color(int red, int green, int blue, int alpha) {
+      return this.delegate.color(red, green, blue, 0);
+    }
+
+    @Override
+    public @NotNull VertexConsumer uv(float u, float v) {
+      return this.delegate.uv(u, v);
+    }
+
+    @Override
+    public @NotNull VertexConsumer overlayCoords(int u, int v) {
+      return this.delegate.overlayCoords(u, v);
+    }
+
+    @Override
+    public @NotNull VertexConsumer uv2(int u, int v) {
+      return this.delegate.uv2(u, v);
+    }
+
+    @Override
+    public @NotNull VertexConsumer normal(float x, float y, float z) {
+      return this.delegate.normal(x, y, z);
+    }
+
+    @Override
+    public void endVertex() {
+      this.delegate.endVertex();
+    }
+
+    @Override
+    public void defaultColor(int i, int j, int k, int l) {
+      this.delegate.defaultColor(i, j, k, l);
+    }
+
+    @Override
+    public void unsetDefaultColor() {
+      this.delegate.unsetDefaultColor();
     }
   }
 
