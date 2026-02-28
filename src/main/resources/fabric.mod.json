@@ -6,13 +6,15 @@
   "name": "SubTick",
   "description": "A carpet extension allowing for finer tick step control.",
   "authors": [
-    "lntricate"
+    "lntricate",
+    "Liuyue_awa"
   ],
   "contributors": [
     "SpaceWalker"
   ],
   "contact": {
-    "sources": "https://github.com/lntricate1/SubTick"
+    "sources": "https://github.com/liuyuexiaoyu1/SubTick",
+    "homepage": "https://github.com/lntricate1/SubTick"
   },
 
   "license": "LGPLv3",

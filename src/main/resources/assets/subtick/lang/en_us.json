@@ -1,23 +1,6 @@
 {
   "carpet.category.subtick": "SubTick",
 
-  "carpet.rule.subtickDefaultPhase.desc": "The default tick phase to freeze at and step to",
-
-  "carpet.rule.subtickTextFormat.desc": "Text format for normal text in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
-
-  "carpet.rule.subtickNumberFormat.desc": "Text format for numbers in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
-
-  "carpet.rule.subtickPhaseFormat.desc": "Text format for phases in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
-
-  "carpet.rule.subtickDimensionFormat.desc": "Text format for dimensions in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
-
-  "carpet.rule.subtickErrorFormat.desc": "Error text format for normal text in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
-
-  "carpet.rule.subtickHighlightColor.desc": "Color for subtick queueStep highlighting",
-
-  "carpet.rule.subtickDefaultRange.desc": "Default range for queueStep",
-
-
   "subtick.tickPhase.worldBorder":      "World Border",
   "subtick.tickPhase.weather":          "Weather",
   "subtick.tickPhase.time":             "Time Increment",
@@ -69,6 +52,11 @@
   "subtick.client.align.bottom_left": "Bottom Left",
   "subtick.client.align.bottom": "Bottom",
   "subtick.client.align.bottom_right": "Bottom Right",
-  "subtick.error.subtick_frozen": "Cannot enable vanilla freeze: Subtick mode is already frozen. Unfreeze Subtick first.",
-  "subtick.error.vanilla_frozen": "Cannot enable Subtick freeze: Vanilla game is already frozen. Unfreeze vanilla first."
+  "carpet.rule.subtickDefaultPhase.desc": "The default tick phase to freeze at and step to",
+  "carpet.rule.subtickTextFormat.desc": "Text format for normal text in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+  "carpet.rule.subtickNumberFormat.desc": "Text format for numbers in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+  "carpet.rule.subtickPhaseFormat.desc": "Text format for phases in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+  "carpet.rule.subtickDimensionFormat.desc": "Text format for dimensions in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+  "carpet.rule.subtickErrorFormat.desc": "Error text format for normal text in subtick message feedback (Uses carpet format, search for \"format(components, ...)\" in https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md)",
+  "carpet.rule.subtickDefaultRange.desc": "Default range for queueStep"
 }

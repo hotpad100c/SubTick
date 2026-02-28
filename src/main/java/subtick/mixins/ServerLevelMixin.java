@@ -1,13 +1,8 @@
 package subtick.mixins;
 
-import net.minecraft.core.SectionPos;
-import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
-import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.server.level.*;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.phys.Vec2;
-import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.llamalad7.mixinextras.injector.WrapWithCondition;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 
 import subtick.TickHandler;
 import subtick.TickPhase;
@@ -52,9 +47,8 @@ import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 @Mixin(ServerLevel.class)
 public class ServerLevelMixin
 {
-  @Unique private final Map<UUID, Vec3> subtick$lastPos = new HashMap<>();
-  @Unique private final Map<UUID, Vec2> subtick$lastRot = new HashMap<>();
-  @Shadow @Final private MinecraftServer server;
+  @Shadow @Final
+  public MinecraftServer server;
 
   private TickHandler tickHandler()
   {
@@ -152,8 +146,7 @@ public class ServerLevelMixin
     for(ChunkHolder holder : Lists.newArrayList(self.chunkMap.getChunks()))
     {
       Optional<LevelChunk> optional = holder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
-      if(optional.isPresent())
-        holder.broadcastChanges(optional.get());
+        optional.ifPresent(holder::broadcastChanges);
     }
     self.chunkMap.tick();
     return false;
@@ -168,56 +161,11 @@ public class ServerLevelMixin
   @Inject(method = "method_31420", at = @At(value = "HEAD"), cancellable = true)
   private void entity(ProfilerFiller profilerFiller, Entity entity, CallbackInfo ci)
   {
-    if (!(entity instanceof ServerPlayer player)) {
-      if (!tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.ENTITY)) {
-        if (!isPlayerControlled(entity)) {
-          ci.cancel();
-        }
-      }
-      return;
-    }
-
-    UUID uuid = player.getUUID();
-    Vec3 currentPos = player.position();
-    Vec2 currentRot = new Vec2(player.getYRot(), player.getXRot());
-
-    Vec3 lastPos = subtick$lastPos.get(uuid);
-    Vec2 lastRot = subtick$lastRot.get(uuid);
-
-    if (lastPos != null && lastRot != null) {
-      if (!currentPos.equals(lastPos) || !currentRot.equals(lastRot)) {
-        subtick$syncPlayerPosition(player, lastPos);
-      }
-    }
-    subtick$lastPos.put(uuid, currentPos);
-    subtick$lastRot.put(uuid, currentRot);
-  }
-
-  @Unique
-  private void subtick$syncPlayerPosition(ServerPlayer player, Vec3 lastPos) {
-    double deltaX = player.getX() - lastPos.x;
-    double deltaY = player.getY() - lastPos.y;
-    double deltaZ = player.getZ() - lastPos.z;
-    boolean isTooFar = Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8 || Math.abs(deltaZ) > 8;
-
-    if (isTooFar) {
-      ((ServerLevel)player.level).getChunkSource().broadcast(player,
-              new ClientboundTeleportEntityPacket(player));
-    } else {
-      ((ServerLevel)player.level).getChunkSource().broadcast(player,
-              new ClientboundMoveEntityPacket.PosRot(
-                      player.getId(),
-                      (short)(deltaX * 4096),
-                      (short)(deltaY * 4096),
-                      (short)(deltaZ * 4096),
-                      (byte)(player.getYRot() * 256.0F / 360.0F),
-                      (byte)(player.getXRot() * 256.0F / 360.0F),
-                      player.isOnGround()
-              )
-      );
+    boolean shouldTick = tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.ENTITY);
+    if (!(entity instanceof ServerPlayer) && !shouldTick && !isPlayerControlled(entity)) {
+      ci.cancel();
     }
   }
-
 
   @Unique
   private boolean isPlayerControlled(Entity entity) {

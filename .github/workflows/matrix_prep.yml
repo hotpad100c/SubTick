@@ -1,10 +1,10 @@
-name: step.matrix_prepare
+name: _step.matrix_prepare
 
 on:
   workflow_call:
     inputs:
       target_subproject:
-        description: The subproject name of the specified Minecraft version for generating matrix entry
+        description: see release.yml, for generating matrix entries
         type: string
         required: false
         default: ''
@@ -18,22 +18,15 @@ jobs:
   matrix_prep:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Display context
-        run: | 
-          echo ref_name = ${{ github.ref_name }}
-          echo target_subproject = ${{ github.event.inputs.target_subproject }}
-          echo target_release_tag = ${{ github.event.inputs.target_release_tag }}
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.14
 
       - id: setmatrix
-        uses: JoshuaTheMiller/conditional-build-matrix@v1.0.1
-        with:
-          # inputFile: '.github/workflows/matrix_includes.json' # Default input file path
-          filter: '[? `${{ github.event_name }}` == `release` || `${{ github.event.inputs.target_subproject }}` == `` || `"${{ github.event.inputs.target_subproject }}"` == subproject_dir ]'
-
-      - name: Print matrix
-        run: echo ${{ steps.setmatrix.outputs.matrix }}
+        run: python .github/workflows/scripts/matrix.py
+        env:
+          TARGET_SUBPROJECT: ${{ inputs.target_subproject }}
 
     outputs:
       matrix: ${{ steps.setmatrix.outputs.matrix }}

@@ -5,10 +5,10 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "MinecraftServerMixin",
+    "PlayerListMixin",
+    "ServerChunkCacheMixin",
     "ServerLevelMixin",
     "TickCommandMixin",
-    "carpet.ServerNetworkHandlerAccessor",
-    "carpet.ServerNetworkHandlerMixin",
     "carpet.TickCommandMixin",
     "client.MinecraftMixin",
     "client.render.LevelRendererMixin",
@@ -16,7 +16,7 @@
   ],
   "client": [
     "client.ClientLevelMixin",
-    "client.ClientNetworkHandlerMixin",
+    "client.ClientPacketListenerMixin",
     "client.EntityMixin",
     "client.GuiMixin",
     "client.LevelRendererMixin"

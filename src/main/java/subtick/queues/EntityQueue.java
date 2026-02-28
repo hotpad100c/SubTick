@@ -50,20 +50,15 @@ public class EntityQueue extends TickingQueue
         queue.remove(new QueueElement(entity));
         continue;
       }
-      //#if MC >= 12111
-      //$$ boolean shouldDiscardEntity = level.getGameRules().get(GameRules.SPAWN_MOBS) || !(entity instanceof Animal) && !(entity instanceof WaterAnimal);
-      //#elseif MC >= 12103
-      //$$ boolean shouldDiscardEntity = level.server.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) || !(entity instanceof Animal) && !(entity instanceof WaterAnimal);
-      //#else
-      boolean shouldDiscardEntity = level.server.isSpawningAnimals() || !(entity instanceof Animal) && !(entity instanceof WaterAnimal) ? !level.server.areNpcsEnabled() && entity instanceof Npc : true;
-      //#endif
-      if(shouldDiscardEntity)
+      //#if MC < 12103
+      if(level.shouldDiscardEntity(entity))
       {
         queue.remove(new QueueElement(entity));
         entity.discard();
       }
       else
       {
+        //#endif
         entity.checkDespawn();
         Entity entity2 = entity.getVehicle();
         if(entity2 != null)
@@ -75,7 +70,9 @@ public class EntityQueue extends TickingQueue
         }
 
         level.guardEntityTick(level::tickNonPassenger, entity);
-      }
+        //#if MC < 12103
+        }
+        //#endif
       if(rangeCheck(entity.blockPosition(), pos, range))
         success_steps ++;
       executed_steps ++;

@@ -48,7 +48,7 @@ def main():
 			if len(target_subprojects) > 0 and subproject not in target_subprojects:
 				print('skipping {}'.format(subproject))
 				continue
-			game_versions = read_prop('versions/{}/gradle.properties'.format(subproject), 'minecraft_version')
+			game_versions = read_prop('versions/{}/gradle.properties'.format(subproject), 'minecraft_dependency')
 			game_versions = game_versions.strip().replace('\r', '').replace('\n', ', ')
 			file_paths = glob.glob('build-artifacts/{}/build/libs/*.jar'.format(subproject))
 			file_paths = list(filter(lambda fp: not fp.endswith('-sources.jar') and not fp.endswith('-dev.jar') and not fp.endswith('-shadow.jar'), file_paths))

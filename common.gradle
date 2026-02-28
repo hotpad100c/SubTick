@@ -1,8 +1,9 @@
-apply plugin: 'maven-publish'
-apply plugin: 'fabric-loom'
-apply plugin: 'com.replaymod.preprocess'
+final int mcVersion = project.mcVersion
+final boolean unobfuscated = mcVersion >= 26_00_00
 
-int mcVersion = project.mcVersion
+apply plugin: 'maven-publish'
+apply plugin: unobfuscated ? 'net.fabricmc.fabric-loom' : 'net.fabricmc.fabric-loom-remap'
+apply plugin: 'com.replaymod.preprocess'
 
 repositories {
   maven {
@@ -32,33 +33,44 @@ repositories {
 }
 
 dependencies {
+  def processDependency = { dep ->
+    // https://github.com/FabricMC/fabric-loader/issues/783
+    if (dep instanceof ModuleDependency) {
+      if (!(dep.group == 'net.fabricmc' && dep.name == 'fabric-loader')) {
+        dep.exclude group: 'net.fabricmc', module: 'fabric-loader'
+      }
+    }
+    return dep
+  }
+  def autoImplementation = { Object... args -> processDependency(unobfuscated ? implementation(*args) : modImplementation(*args)) }
   // loom
   minecraft "com.mojang:minecraft:${project.minecraft_version}"
-  mappings loom.layered {
-    mappings file("../../lithium_mappings.tiny")
-    mappings file("../../malilib_mappings.tiny")
-    officialMojangMappings()
+  if (!unobfuscated) {
+    mappings loom.layered {
+      mappings file("../../lithium_mappings.tiny")
+      mappings file("../../malilib_mappings.tiny")
+      officialMojangMappings()
+    }
   }
-  modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+  autoImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
   // mods
-  modImplementation "carpet:fabric-carpet:${project.carpet_core_version}"
-  modImplementation "com.g4mesoft:g4mespeed:${project.g4mespeed_version}"
+  autoImplementation "carpet:fabric-carpet:${project.carpet_core_version}"
+  autoImplementation "com.g4mesoft:g4mespeed:${project.g4mespeed_version}"
+  include(autoImplementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:0.2.2")))
   if (mcVersion >= 12101) {
-    modImplementation "${project.lithium_version}"
+    autoImplementation "${project.lithium_version}"
   } else {
-    modImplementation "maven.modrinth:lithium:${project.lithium_version}"
+    autoImplementation "maven.modrinth:lithium:${project.lithium_version}"
   }
   if (mcVersion >= 12104){
-    modImplementation "${project.malilib_version}"
+    autoImplementation "${project.malilib_version}"
   }else if (mcVersion >= 12103) {
-    modImplementation "com.github.sakura-ryoko:malilib:${project.malilib_version}"
+    autoImplementation "com.github.sakura-ryoko:malilib:${project.malilib_version}"
   } else {
-    modImplementation "fi.dy.masa.malilib:malilib-fabric-${project.malilib_version}"
+    autoImplementation "fi.dy.masa.malilib:malilib-fabric-${project.malilib_version}"
   }
-  modImplementation "com.terraformersmc:modmenu:${project.mod_menu_version}"
-  if (mcVersion >= 12006) {
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-  }
+  autoImplementation "com.terraformersmc:modmenu:${project.mod_menu_version}"
+  autoImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
 JavaVersion JAVA_COMPATIBILITY

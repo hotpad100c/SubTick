@@ -14,6 +14,9 @@ import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
 import subtick.ITickHandler;
 import subtick.TickPhase;
+//#if MC >= 12111
+//$$ import net.minecraft.commands.Commands;
+//#endif
 
 public class TickCommand
 {
@@ -21,6 +24,11 @@ public class TickCommand
   {
     dispatcher.register(
       literal("tick")
+              //#if MC >= 12111
+              //$$ .requires(c -> Commands.LEVEL_GAMEMASTERS.check(c.permissions()))
+              //#else
+              .requires(c -> c.hasPermission(2))
+              //#endif
       //.then(literal("debug")
       //  .executes((c) -> ITickHandler.get(c).printDebugInfo(c.getSource()))
       //)

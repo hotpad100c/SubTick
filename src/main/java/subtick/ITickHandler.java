@@ -4,6 +4,7 @@ import com.mojang.brigadier.context.CommandContext;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 
 /**
  * Stores the state of the server. Has public methods for scheduling actions.
@@ -29,6 +30,8 @@ public interface ITickHandler
    * Called by the /tick when command.
    */
   public int when(CommandSourceStack c);
+
+  public void handleLogin(ServerPlayer player);
 
   /*
    * Called by the /tick freeze on command.

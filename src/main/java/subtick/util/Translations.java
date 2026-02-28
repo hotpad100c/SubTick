@@ -89,7 +89,11 @@ public class Translations
       return;
     }
 
+    //#if MC >= 12110
+    //$$ Gson gson = new GsonBuilder().setStrictness(Strictness.LENIENT).create()
+    //#else
     Gson gson = new GsonBuilder().setLenient().create();
+    //#endif
     Map<String, String> map = gson.fromJson(jsonData, new TypeToken<Map<String, String>>(){}.getType());
     Map<String, String> map1 = new HashMap<>();
     for(Map.Entry<String, String> entry : map.entrySet())

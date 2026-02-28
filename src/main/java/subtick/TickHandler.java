@@ -5,6 +5,7 @@ import com.mojang.brigadier.Command;
 import carpet.utils.Messenger;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import subtick.network.ServerNetworkHandler;
 import subtick.util.Translations;
 //#if MC >= 12003
@@ -53,6 +54,23 @@ public class TickHandler implements ITickHandler
 
   //public static boolean freezing(){return state == State.FREEZING;}
 
+  @Override
+  public void handleLogin(ServerPlayer player) {
+    if (state == State.FROZEN || state == State.FREEZING || state == State.STEPPING) {
+      ServerNetworkHandler.sendFrozen(player.getLevel(), currentPhase);
+    } else if (state == State.UNFREEZING || state == State.UNFROZEN) {
+      ServerNetworkHandler.sendUnfrozen(player.getLevel());
+    }
+    if (state == State.STEPPING) {
+      ServerNetworkHandler.sendTickStep(player.getLevel(), remainingTicks, targetPhase);
+    }
+    //#if MC >= 12003
+    //$$ if (serverTickRateManager != null) {
+    //$$     player.connection.send(ClientboundTickingStatePacket.from(serverTickRateManager));
+    //$$ }
+    //#endif
+  }
+
   public int printDebugInfo(CommandSourceStack c)
   {
     Messenger.m(c, "w remainingTicks: " + remainingTicks);
@@ -90,8 +108,11 @@ public class TickHandler implements ITickHandler
   @Override
   public boolean shouldTick(ServerLevel level, int tickPhase)
   {
+    if (!level.getServer().isRunning() || level.getServer().isStopped()) {
+      reset();
+      return true;
+    }
     TickPhase phase = new TickPhase(level, tickPhase);
-
     return switch(state)
     {
       // Unfrozen cases --------------
@@ -282,7 +303,7 @@ public class TickHandler implements ITickHandler
     if(ticks != 0 || !tickPhase.equals(currentPhase))
     {
       queues.scheduleEnd();
-      //#if MC >= 12006
+      //#if MC >= 12003
       //$$ serverTickRateManager.stepGameIfPaused(ticks);
       //#endif
       ServerNetworkHandler.sendTickStep(c.getLevel(), ticks, tickPhase);
@@ -360,9 +381,6 @@ public class TickHandler implements ITickHandler
     if(count == 0 && phase.isPriorTo(currentPhase))
       return false;
 
-    if(queues.scheduled)
-      return false;
-
-    return true;
+    return !queues.scheduled;
   }
 }

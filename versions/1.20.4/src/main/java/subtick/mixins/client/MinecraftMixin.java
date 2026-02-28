@@ -11,11 +11,6 @@ import subtick.client.ClientTickHandler;
 
 @Mixin(Minecraft.class)
 public class MinecraftMixin {
-    @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;tickBlockEntities()V"))
-    private boolean tickBlockEntities(ClientLevel instance) {
-        return !ClientTickHandler.skip_block_entities && ClientTickHandler.shouldTick();
-    }
-
     @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;animateTick(III)V"))
     private boolean animateTick(ClientLevel instance, int i, int j, int k) {
         return ClientTickHandler.shouldTick();

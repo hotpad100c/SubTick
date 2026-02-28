@@ -22,6 +22,9 @@ import static com.mojang.brigadier.arguments.StringArgumentType.word;
 import subtick.IQueues;
 import subtick.Settings;
 import subtick.queues.TickingQueue;
+//#if MC >= 12111
+//$$ import net.minecraft.commands.Commands;
+//#endif
 
 public class QueueCommand
 {
@@ -29,6 +32,11 @@ public class QueueCommand
   {
     dispatcher.register(
       literal("queueStep")
+              //#if MC >= 12111
+              //$$ .requires(c -> Commands.LEVEL_GAMEMASTERS.check(c.permissions()))
+              //#else
+              .requires(c -> c.hasPermission(2))
+              //#endif
       .then(argument("queue", word()).suggests((c, b) -> suggest(TickingQueue.commandKeys, b))
         .then(argument("count", integer(1)).suggests((c, b) -> suggest(new HashSet<String>()
         // HACKY FIX because brigadier doesn't like 2 arguments both suggesting stuff

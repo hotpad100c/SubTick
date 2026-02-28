@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.llamalad7.mixinextras.injector.WrapWithCondition;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 
 import subtick.Queues;
 import subtick.TickHandler;
@@ -55,7 +55,7 @@ import java.util.function.Consumer;
 //#if MC >= 12002
 //$$ import net.minecraft.world.TickRateManager;
 //#endif
-//#if MC >= 12004
+//#if MC >= 12104
 //$$ import net.minecraft.world.entity.PositionMoveRotation;
 //$$ import net.minecraft.world.entity.Relative;
 //#endif
@@ -63,11 +63,10 @@ import java.util.function.Consumer;
 // entity management
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 
-@Mixin(ServerLevel.class)
+@Mixin(value = ServerLevel.class, priority = 1001)
 public class ServerLevelMixin
 {
 
-  @Unique private boolean subtick$shouldTickEntityThisTime = true;
   @Unique private final Map<UUID, Vec3> subtick$lastPos = new HashMap<>();
   @Unique private final Map<UUID, Vec2> subtick$lastRot = new HashMap<>();
   @Shadow @Final private MinecraftServer server;
@@ -148,19 +147,14 @@ public class ServerLevelMixin
     return tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.RAID);
   }
 
+  //#if MC < 12103
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerChunkCache;tick(Ljava/util/function/BooleanSupplier;Z)V"))
   private boolean chunk(ServerChunkCache self, BooleanSupplier hasTimeLeft, boolean bool)
   {
     if(tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.CHUNK))
       return true;
 
-    // Send chunk updates and entity updates to clients
-    for(ChunkHolder holder : Lists.newArrayList(self.chunkMap.
-            //#if MC >= 12110
-            //$$ visibleChunkMap.values()
-            //#else
-            getChunks()
-            //#endif
+    for(ChunkHolder holder : Lists.newArrayList(self.chunkMap.getChunks()
     ))
     {
       //#if MC >= 12006
@@ -170,8 +164,10 @@ public class ServerLevelMixin
       optional.ifPresent(holder::broadcastChanges);
       //#endif
     }
+    self.chunkMap.tick();
     return false;
   }
+  //#endif
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;runBlockEvents()V"))
   private boolean blockEvent(ServerLevel self)
@@ -183,8 +179,19 @@ public class ServerLevelMixin
   @Inject(method = "tick", at = @At(target = "Lnet/minecraft/world/level/entity/EntityTickList;forEach(Ljava/util/function/Consumer;)V", value = "INVOKE"))
   private void tickEntities(CallbackInfo ci)
   {
-    subtick$shouldTickEntityThisTime = tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.ENTITY);
+    if(this.entityTickList.active.isEmpty()) tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.ENTITY);
   }
+
+  /*
+   * To keep the player and player mounted entities ticking correctly (matching vanilla 1.21 behavior),
+   * we have to filter ticks inside the forEach of entityTickList.
+   * But there is problem: when a dimension has no entities,
+   * or only player entities, tickHandler().shouldTick will never reach phase 8,
+   * causing the phase system to get stuck in the stepping state.
+   * The above approach is used to solve this issue.
+   * It ensures that shouldTick is still executed even when there are no entities.
+   */
+
 
   @Inject(method = "method_31420", at = @At(value = "HEAD"), cancellable = true)
   //#if MC >= 12002
@@ -193,27 +200,10 @@ public class ServerLevelMixin
   private void entity(ProfilerFiller profilerFiller, Entity entity, CallbackInfo ci)
   //#endif
   {
-    if (!(entity instanceof ServerPlayer) && !subtick$shouldTickEntityThisTime && !isPlayerControlled(entity)
-    ) {
+    boolean shouldTick = tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.ENTITY);
+    if (!(entity instanceof ServerPlayer) && !shouldTick && !isPlayerControlled(entity)) {
       ci.cancel();
-      return;
     }
-    /*
-    if (entity instanceof ServerPlayer player) {
-      UUID uuid = player.getUUID();
-      Vec3 currentPos = player.position();
-      Vec2 currentRot = new Vec2(player.getYRot(), player.getXRot());
-      Vec3 lastPos = subtick$lastPos.get(uuid);
-      Vec2 lastRot = subtick$lastRot.get(uuid);
-
-      if (lastPos != null && lastRot != null) {
-        if (!currentPos.equals(lastPos) || !currentRot.equals(lastRot)) {
-          subtick$syncPlayerPosition(player, lastPos);
-        }
-      }
-      subtick$lastPos.put(uuid, currentPos);
-      subtick$lastRot.put(uuid, currentRot);
-    }*/
   }
 
   @WrapWithCondition(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;tickBlockEntities()V"))
@@ -226,43 +216,6 @@ public class ServerLevelMixin
   private boolean entityManagement(PersistentEntitySectionManager<Entity> self)
   {
     return tickHandler().shouldTick((ServerLevel)(Object)this, TickPhase.ENTITY_MANAGEMENT);
-  }
-
-
-  @Unique
-  private void subtick$syncPlayerPosition(ServerPlayer player, Vec3 lastPos) {
-    double deltaX = player.getX() - lastPos.x;
-    double deltaY = player.getY() - lastPos.y;
-    double deltaZ = player.getZ() - lastPos.z;
-    boolean isTooFar = Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8 || Math.abs(deltaZ) > 8;
-
-    if (isTooFar) {
-    //#if MC >= 12104
-    //$$  ((ServerLevel)player.level()).getChunkSource().broadcast(player, ClientboundTeleportEntityPacket.teleport(
-    //$$      player.getId(),
-    //$$      new PositionMoveRotation(player.position(),player.getDeltaMovement(),player.getXRot(), player.getYRot()),
-    //$$      Relative.union(Relative.DELTA, Relative.ROTATION),
-    //$$      player.onGround()
-    //$$  ));
-    //$$ } else {((ServerLevel)player.level()).getChunkSource().broadcast(player,
-    //#elseif MC >= 12002
-    //$$  ((ServerLevel)player.level()).getChunkSource().broadcast(player, new ClientboundTeleportEntityPacket(player));
-    //$$} else {((ServerLevel)player.level()).getChunkSource().broadcast(player,
-    //#else
-      ((ServerLevel)player.level).getChunkSource().broadcast(player, new ClientboundTeleportEntityPacket(player));
-    } else {((ServerLevel)player.level).getChunkSource().broadcast(player,
-    //#endif
-              new ClientboundMoveEntityPacket.PosRot(
-                      player.getId(),
-                      (short)(deltaX * 4096),
-                      (short)(deltaY * 4096),
-                      (short)(deltaZ * 4096),
-                      (byte)(player.getYRot() * 256.0F / 360.0F),
-                      (byte)(player.getXRot() * 256.0F / 360.0F),
-                      player.isOnGround()
-              )
-      );
-    }
   }
 
   @Unique

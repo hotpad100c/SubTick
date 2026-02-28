@@ -32,7 +32,15 @@ public class ClientTickHandler
   private static void clearRenders()
   {
     LevelRenderer.clear();
+    assert mc.level != null;
     mc.level.tickingEntities.forEach((entity) -> ((IEntity)entity).setCGlowing(false));
+  }
+
+  public static void clear() {
+    ClientBlockEntityQueue.end(mc.level);
+    clearQueue();
+    clearRenders();
+    frozen = false;
   }
 
   public static void setFreeze(CompoundTag tag)
@@ -134,7 +142,7 @@ public class ClientTickHandler
     while(i < index1)
     {
       QueueElement element = iter.next();
-      LevelRenderer.addCuboidFaces(element.x(), element.y(), element.z(), Configs.STEPPED_BG.getColor());
+      LevelRenderer.addOutline(element.blockPos(), Configs.STEPPED_BG.getColor());
       if(depth)
         LevelRenderer.addLabel(++i, element.depth(), element.x(), element.y(), element.z(), Configs.STEPPED_TEXT.getColor(), Configs.STEPPED_DEPTH.getColor());
       else
@@ -143,7 +151,7 @@ public class ClientTickHandler
     while(i < index2)
     {
       QueueElement element = iter.next();
-      LevelRenderer.addCuboidFaces(element.x(), element.y(), element.z(), Configs.STEPPING_BG.getColor());
+      LevelRenderer.addOutline(element.blockPos(), Configs.STEPPING_BG.getColor());
       if(depth)
         LevelRenderer.addLabel(++i, element.depth(), element.x(), element.y(), element.z(), Configs.STEPPING_TEXT.getColor(), Configs.STEPPING_DEPTH.getColor());
       else
@@ -155,7 +163,7 @@ public class ClientTickHandler
     while(i < queue.size() - newQueueElementCount)
     {
       QueueElement element = iter.next();
-      LevelRenderer.addCuboidFaces(element.x(), element.y(), element.z(), Configs.TO_STEP_BG.getColor());
+      LevelRenderer.addOutline(element.blockPos(), Configs.TO_STEP_BG.getColor());
       if(depth)
         LevelRenderer.addLabel(++i, element.depth(), element.x(), element.y(), element.z(), Configs.TO_STEP_TEXT.getColor(), Configs.TO_STEP_DEPTH.getColor());
       else
@@ -164,7 +172,7 @@ public class ClientTickHandler
     while(i < queue.size())
     {
       QueueElement element = iter.next();
-      LevelRenderer.addCuboidFaces(element.x(), element.y(), element.z(), Configs.NEW_BG.getColor());
+      LevelRenderer.addOutline(element.blockPos(), Configs.NEW_BG.getColor());
       if(depth)
         LevelRenderer.addLabel(++i, element.depth(), element.x(), element.y(), element.z(), Configs.NEW_TEXT.getColor(), Configs.NEW_DEPTH.getColor());
       else
