@@ -12,9 +12,6 @@ public class SubTickClient implements ClientModInitializer, IInitializationHandl
   public void onInitializeClient()
   {
     InitializationHandler.getInstance().registerInitializationHandler(this);
-    //#if MC >= 12101
-    //$$ LevelRenderer.init();
-    //#endif
   }
 
   @Override

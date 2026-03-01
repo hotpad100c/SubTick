@@ -74,9 +74,6 @@ public class TickCommandMixin
     @Inject(method = "step", at = @At("HEAD"), cancellable = true)
     private static void step(CommandSourceStack c, int ticks, CallbackInfoReturnable<Integer> cir) throws CommandSyntaxException
     {
-        if (c.getServer().tickRateManager().isFrozen()) {
-            return;
-        }
         cir.setReturnValue(ITickHandler.get(c).step(c, ticks, TickPhase.byCommandKey(Settings.subtickDefaultPhase)));
     }
 }

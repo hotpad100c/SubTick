@@ -7,209 +7,103 @@ import com.mojang.blaze3d.vertex.*;
 //#else
 import fi.dy.masa.malilib.util.Color4f;
 //#endif
-//#if MC >= 12110
-//#if MC >= 12111
-//$$ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
-//$$ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
-//#else
-//$$ import subtick.client.substitute.WorldRenderContext;
-//$$ import subtick.client.substitute.WorldRenderEvents;
-//#endif
-//#else
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-//#endif
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.OutlineBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 //#if MC >= 12103
 //#if MC < 12105
 //$$import net.minecraft.client.renderer.CoreShaders;
 //#endif
 //#endif
+//#if MC >= 12105
+//$$ import net.minecraft.client.renderer.block.ModelBlockRenderer;
+//#endif
 
 public class LevelRenderer
 {
-  //#if MC >= 12105
-  //$$ private static final com.mojang.blaze3d.pipeline.RenderPipeline WORLD_QUAD_PIPELINE = com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.DEBUG_FILLED_SNIPPET)
-  //$$         .withLocation(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("subtick", "world_quads"))
-  //$$         .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
-  //$$         .withDepthWrite(false)
-  //$$         .withCull(false)
-  //$$         .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
-  //$$         .build();
-  //$$ public static final net.minecraft.client.renderer.RenderType WORLD_QUADS = net.minecraft.client.renderer.RenderType.create(
-  //$$         "subtick_world_quads",
-  //#if MC >= 12111
-  //$$ net.minecraft.client.renderer.rendertype.RenderSetup.builder(WORLD_QUAD_PIPELINE)
-  //$$                .affectsCrumbling()
-  //$$                .sortOnUpload()
-  //$$                .bufferSize(256)
-  //$$                .createRenderSetup()
-  //#else
-  //$$ 256, false, true, WORLD_QUAD_PIPELINE,
-  //$$         net.minecraft.client.renderer.RenderType.CompositeState.builder()
-  //$$                 .createCompositeState(false)
-  //#endif
-  //$$ );
-  //$$ private static final com.mojang.blaze3d.pipeline.RenderPipeline WORLD_LINE_PIPELINE = com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.LINES_SNIPPET)
-  //$$         .withLocation(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("subtick", "world_lines"))
-  //$$         .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
-  //$$         .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.LINES)
-  //$$         .build();
-  //$$ public static final net.minecraft.client.renderer.RenderType WORLD_LINES = net.minecraft.client.renderer.RenderType.create(
-  //$$        "subtick_world_lines",
-  //#if MC >= 12111
-  //$$ net.minecraft.client.renderer.rendertype.RenderSetup.builder(WORLD_LINE_PIPELINE)
-  //$$                .affectsCrumbling()
-  //$$                .sortOnUpload()
-  //$$                .bufferSize(256)
-  //$$                .createRenderSetup()
-  //#else
-  //$$ 256, false, true, WORLD_LINE_PIPELINE,
-  //$$         net.minecraft.client.renderer.RenderType.CompositeState.builder()
-  //$$              .setLineState(new net.minecraft.client.renderer.RenderStateShard.LineStateShard(java.util.OptionalDouble.empty()))
-  //$$               .createCompositeState(false)
-  //#endif
-  //$$ );
-  //#endif
-  private static final HashSet<Line> lines = new HashSet<>();
-  private static final HashSet<Quad> quads = new HashSet<>();
+  private static final Minecraft mc = Minecraft.getInstance();
+  private static final HashSet<Pos> hlPos = new HashSet<>();
   private static final HashSet<Text> texts = new HashSet<>();
 
-  public static void init(){
-    //#if MC >= 12111
-    //$$ WorldRenderEvents.BEFORE_TRANSLUCENT.register(LevelRenderer::render);
-    //#elseif MC >= 12110
-    //$$ WorldRenderEvents.AFTER_TRANSLUCENT.register(LevelRenderer::render);
-    //#else
-    WorldRenderEvents.LAST.register(LevelRenderer::render);
-    //#endif
-  }
-
-  public static synchronized void render(WorldRenderContext context) {
-    if (lines.isEmpty() && quads.isEmpty() && texts.isEmpty()) return;
-    //#if MC >= 12111
-    //$$ PoseStack ps = context.matrices();
-    //#else
-    PoseStack ps = context.matrixStack();
-    //#endif
-
-    Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+  public static synchronized void render(PoseStack poseStack, OutlineBufferSource outlineBufferSource, boolean renderText) {
+    Camera camera = mc.gameRenderer.getMainCamera();
     //#if MC >= 12111
     //$$ Vec3 cpos = camera.position();
     //#else
     Vec3 cpos = camera.getPosition();
     //#endif
-    if (!quads.isEmpty()) {
-      //#if MC < 12105
-      //#if MC >= 12103
-      //$$ RenderSystem.setShader(CoreShaders.POSITION_COLOR);
-      //#else
-      RenderSystem.setShader(GameRenderer::getPositionColorShader);
-      //#endif
-      RenderSystem.enableBlend();
-      RenderSystem.defaultBlendFunc();
-      RenderSystem.disableDepthTest();
-      //#endif
+    if (!renderText) {
+      Map<Integer, List<Outline>> groupedOutlines = hlPos.stream()
+              .filter(p -> p instanceof Outline)
+              .map(o -> (Outline) o)
+              .collect(Collectors.groupingBy(o -> o.color().intValue));
 
-      BufferBuilder quadBuffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-      for (Quad quad : quads) {
-        quad.render(quadBuffer, cpos.x, cpos.y, cpos.z);
+      for (Map.Entry<Integer, List<Outline>> entry : groupedOutlines.entrySet()) {
+        int color = entry.getKey();
+        setOutlineColor(outlineBufferSource, color);
+        for (Outline o : entry.getValue()) {
+          o.render(poseStack, camera, outlineBufferSource, mc.level);
+        }
+        outlineBufferSource.endOutlineBatch();
       }
-      //#if MC >= 12105
-      //$$ WORLD_QUADS.draw(quadBuffer.buildOrThrow());
-      //#else
-      BufferUploader.drawWithShader(quadBuffer.buildOrThrow());
-      //#endif
-    }
-    if (!lines.isEmpty()) {
-      //#if MC < 12105
-      //#if MC >= 12103
-      //$$ RenderSystem.setShader(CoreShaders.POSITION_COLOR);
-      //#else
-      RenderSystem.setShader(GameRenderer::getPositionColorShader);
-      //#endif
-      RenderSystem.enableBlend();
-      RenderSystem.defaultBlendFunc();
-      RenderSystem.disableDepthTest();
-      //#endif
-
-      BufferBuilder lineBuffer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR);
-      for (Line line : lines) {
-        line.render(lineBuffer, cpos.x, cpos.y, cpos.z);
-      }
-      //#if MC >= 12105
-      //$$ WORLD_LINES.draw(lineBuffer.buildOrThrow());
-      //#else
-      BufferUploader.drawWithShader(lineBuffer.buildOrThrow());
-      //#endif
-    }
-
-    if (!texts.isEmpty()) {
-      //#if MC < 12105
-      //#if MC >= 12103
-      //$$ RenderSystem.setShader(CoreShaders.POSITION_COLOR);
-      //#else
-      RenderSystem.setShader(GameRenderer::getPositionColorShader);
-      //#endif
-      RenderSystem.enableBlend();
-      RenderSystem.defaultBlendFunc();
-      RenderSystem.disableDepthTest();
-      //#endif
-      for (Text text : texts) {
-        text.render(null, ps, camera.rotation(), cpos.x, cpos.y, cpos.z);
+    } else {
+      if (!texts.isEmpty()) {
+        //#if MC < 12105
+        //#if MC >= 12103
+        //$$ RenderSystem.setShader(CoreShaders.POSITION_COLOR);
+        //#else
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        //#endif
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        //#endif
+        for (Text text : texts) {
+          text.render(null, poseStack, camera.rotation(), cpos.x, cpos.y, cpos.z);
+        }
       }
     }
   }
 
   public static synchronized void clear()
   {
-    lines.clear();
-    quads.clear();
+    hlPos.clear();
     texts.clear();
   }
 
-  public static void addCuboid(int x, int y, int z, Color4f color)
-  {
-    addCuboidFaces(x, y, z, x+1, y+1, z+1, color);
-    addCuboidEdges(x, y, z, x+1, y+1, z+1, color);
+
+  public static synchronized boolean hasOutline(){
+    return !hlPos.isEmpty();
   }
 
-  public static void addCuboidFaces(int x, int y, int z, Color4f color)
-  {
-    addCuboidFaces(x, y, z, x+1, y+1, z+1, color);
-  }
-
-  public static void addCuboidEdges(int x, int y, int z, Color4f color)
-  {
-    addCuboidEdges(x, y, z, x+1, y+1, z+1, color);
-  }
-
-  public static synchronized void addCuboidFaces(double x, double y, double z, double X, double Y, double Z, Color4f color)
-  {
-    QuadCuboid o = new QuadCuboid(x, y, z, X, Y, Z, color);
-    if(!quads.add(o))
-    {
-      quads.remove(o);
-      quads.add(o);
-    }
-  }
-
-  public static synchronized void addCuboidEdges(double x, double y, double z, double X, double Y, double Z, Color4f color)
-  {
-    LineCuboid o = new LineCuboid(x, y, z, X, Y, Z, color);
-    if(!lines.add(o))
-    {
-      lines.remove(o);
-      lines.add(o);
+  public static synchronized void addOutline(BlockPos pos, Color4f color) {
+    Outline o = new Outline(pos, color);
+    if(!hlPos.add(o)) {
+      hlPos.remove(o);
+      hlPos.add(o);
     }
   }
 
@@ -233,120 +127,122 @@ public class LevelRenderer
     }
   }
 
-  private static interface Line
+  private static interface Pos
   {
-    public void render(BufferBuilder buffer, double cx, double cy, double cz);
+    public void render(PoseStack poseStack, Camera camera, OutlineBufferSource outlineBufferSource, Level level);
   }
 
-  private static record LineCuboid(double x, double y, double z, double X, double Y, double Z, Color4f color) implements Line
+  private static record Outline(BlockPos pos, Color4f color) implements Pos
   {
     @Override
     public boolean equals(Object b)
     {
-      return b instanceof LineCuboid o && o.x == x && o.y == y && o.z == z && o.X == X && o.Y == Y && o.Z == Z;
+      return b instanceof Outline o && o.pos.getX() == pos.getX() && o.pos.getY() == pos.getY() && o.pos.getZ() == pos.getZ();
     }
 
     @Override
     public int hashCode()
     {
-      return Objects.hash(x, y, z, X, Y, Z);
-    }
-
-    public void render(BufferBuilder buffer, double cx, double cy, double cz)
-    {
-      double x = this.x - cx, y = this.y - cy, z = this.z - cz;
-      double X = this.X - cx, Y = this.Y - cy, Z = this.Z - cz;
-      buffer.addVertex((float)x,(float) y,(float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)X,(float) y,(float) z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float)X,(float) y,(float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)X,(float) Y,(float) z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float)X,(float) Y,(float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)x,(float) Y,(float) z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float)x,(float) Y,(float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)x,(float) y,(float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)x,(float) y,(float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)x,(float) y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float)X,(float) y,(float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)X,(float) y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float)x,(float) Y,(float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)x,(float) Y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float)X,(float) Y,(float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)X,(float) Y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)x,(float) y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)X,(float) y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float)X,(float) y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)X,(float) Y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float)X,(float) Y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)x,(float) Y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float)x,(float) Y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float)x,(float) y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-    }
-  }
-
-  private static interface Quad
-  {
-    public void render(BufferBuilder buffer, double cx, double cy, double cz);
-  }
-
-  private static record QuadCuboid(double x, double y, double z, double X, double Y, double Z, Color4f color) implements Quad
-  {
-    @Override
-    public boolean equals(Object b)
-    {
-      return b instanceof QuadCuboid o && o.x == x && o.y == y && o.z == z && o.X == X && o.Y == Y && o.Z == Z;
+      return Objects.hash(pos);
     }
 
     @Override
-    public int hashCode()
+    public void render(PoseStack poseStack, Camera camera, OutlineBufferSource outlineBufferSource, Level level)
     {
-      return Objects.hash(x, y, z, X, Y, Z);
-    }
+      BlockState state = level.getBlockState(pos);
+      BlockRenderDispatcher blockRenderManager = mc.getBlockRenderer();
+      BlockEntity blockEntity = level.getBlockEntity(pos);
+      poseStack.pushPose();
+      Vec3 cpos = camera.getPosition();
+      poseStack.translate(pos.getX() - cpos.x, pos.getY() - cpos.y, pos.getZ() - cpos.z);
 
-    public void render(BufferBuilder buffer, double cx, double cy, double cz)
-    {
-      double x = this.x - cx, y = this.y - cy, z = this.z - cz;
-      double X = this.X - cx, Y = this.Y - cy, Z = this.Z - cz;
-      buffer.addVertex((float) x, (float) y, (float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) x, (float) Y, (float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) x, (float) Y, (float) Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) x, (float) y, (float) Z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float) X,(float) y,(float) z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) X,(float) y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) X,(float) Y,(float) Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) X,(float) Y,(float) z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float) x,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) x,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) X,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) X,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float) x,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) X,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) X,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) x,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float) x,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) X,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) X,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) x,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
-
-      buffer.addVertex((float) x,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) x,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) X,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
-      buffer.addVertex((float) X,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+      if (blockEntity != null) {
+        BlockEntityRenderDispatcher blockEntityRenderDispatcher = mc.getBlockEntityRenderDispatcher();
+        blockEntityRenderDispatcher.render(blockEntity, 0.0f, poseStack, outlineBufferSource);
+      } else {
+        if (state.getRenderShape() != RenderShape.MODEL) {
+          poseStack.popPose();
+          return;
+        }
+        BakedModel model = blockRenderManager.getBlockModel(state);
+        VertexConsumer vertexConsumer = outlineBufferSource.getBuffer(RenderType.entityTranslucent(TextureAtlas.LOCATION_BLOCKS));
+        InvisibleVertexConsumer invisibleConsumer = new InvisibleVertexConsumer(vertexConsumer);
+        //#if MC >= 12105
+        //$$ ModelBlockRenderer.renderModel(
+        //#else
+        blockRenderManager.getModelRenderer().renderModel(
+                //#endif
+                poseStack.last(),
+                invisibleConsumer,
+                //#if MC < 12105
+                state,
+                //#endif
+                model,
+                color.r, color.g, color.b,
+                net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos),
+                OverlayTexture.NO_OVERLAY
+        );
+      }
+      poseStack.popPose();
     }
   }
 
+  public static void setOutlineColor(OutlineBufferSource outlineProvider, int color) {
+    int red = (color >> 16) & 0xFF;
+    int green = (color >> 8) & 0xFF;
+    int blue = color & 0xFF;
+    int alpha = (color >> 24) & 0xFF;
+
+    if (alpha == 0) {
+      alpha = 255;
+    }
+
+    outlineProvider.setColor(red, green, blue, alpha);
+  }
+
+  private static class InvisibleVertexConsumer implements VertexConsumer {
+    private final VertexConsumer delegate;
+
+    public InvisibleVertexConsumer(VertexConsumer delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public @NotNull VertexConsumer addVertex(float d, float e, float f) {
+      this.delegate.addVertex(d, e, f);
+      return this;
+    }
+
+    @Override
+    public @NotNull VertexConsumer setColor(int red, int green, int blue, int alpha) {
+      this.delegate.setColor(red, green, blue, 0);
+      return this;
+    }
+
+    @Override
+    public @NotNull VertexConsumer setUv(float u, float v) {
+      this.delegate.setUv(u, v);
+      return this;
+    }
+
+    @Override
+    public @NotNull VertexConsumer setUv1(int u, int v) {
+      this.delegate.setUv1(u, v);
+      return this;
+    }
+
+    @Override
+    public @NotNull VertexConsumer setUv2(int u, int v) {
+      this.delegate.setUv2(u, v);
+      return this;
+    }
+
+    @Override
+    public @NotNull VertexConsumer setNormal(float x, float y, float z) {
+      this.delegate.setNormal(x, y, z);
+      return this;
+    }
+  }
   private static interface Text
   {
     public void render(BufferBuilder builder, PoseStack poseStack, Quaternionf rotation, double cx, double cy, double cz);
@@ -409,7 +305,6 @@ public class LevelRenderer
       //#if MC <= 12101
       RenderSystem.applyModelViewMatrix();
       //#endif
-
       MultiBufferSource.BufferSource immediate = Minecraft.getInstance().renderBuffers().bufferSource();
       font.drawInBatch(index, -font.width(index)/2F, -font.lineHeight * 0.5F, color1, false, poseStack.last().pose(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
       immediate.endBatch();

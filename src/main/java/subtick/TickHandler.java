@@ -303,9 +303,6 @@ public class TickHandler implements ITickHandler
     if(ticks != 0 || !tickPhase.equals(currentPhase))
     {
       queues.scheduleEnd();
-      //#if MC >= 12003
-      //$$ serverTickRateManager.stepGameIfPaused(ticks);
-      //#endif
       ServerNetworkHandler.sendTickStep(c.getLevel(), ticks, tickPhase);
     }
     return Command.SINGLE_SUCCESS;

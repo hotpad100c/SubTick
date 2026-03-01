@@ -1,7 +1,10 @@
 package subtick.client;
 
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
@@ -39,7 +42,7 @@ public class LevelRenderer
   private static final HashSet<Pos> hlPos = new HashSet<>();
   private static final HashSet<Text> texts = new HashSet<>();
 
-  public static synchronized void render(PoseStack ps, OutlineBufferSource outlineBufferSource)
+  public static synchronized void render(PoseStack poseStack, OutlineBufferSource outlineBufferSource, boolean renderText)
   {
     RenderSystem.setShader(GameRenderer::getPositionColorShader);
     RenderSystem.enableBlend();
@@ -50,26 +53,32 @@ public class LevelRenderer
 
     Tesselator tesselator = Tesselator.getInstance();
     BufferBuilder buffer = tesselator.getBuilder();
+    if (!renderText) {
+      Map<Integer, List<Outline>> groupedOutlines = hlPos.stream()
+              .filter(p -> p instanceof Outline)
+              .map(o -> (Outline) o)
+              .collect(Collectors.groupingBy(o -> o.color().intValue));
 
-    for(Pos pos : hlPos) {
-      pos.render(ps, camera, outlineBufferSource, mc.level);
-    }
-
-    //outlineBufferSource.endOutlineBatch();
-    //#if MC < 12006
-    //$$ PoseStack poseStack = RenderSystem.getModelViewStack();
-    //#endif
-    //#if MC >= 11900
-    //$$ Quaternionf rot = camera.rotation();
-    //#else
-    Quaternion rot = camera.rotation();
-    //#endif
-    for(Text text : texts)
+      for (Map.Entry<Integer, List<Outline>> entry : groupedOutlines.entrySet()) {
+        int color = entry.getKey();
+        setOutlineColor(outlineBufferSource, color);
+        for (Outline o : entry.getValue()) {
+          o.render(poseStack, camera, outlineBufferSource, mc.level);
+        }
+        outlineBufferSource.endOutlineBatch();
+      }
+    } else {
       //#if MC < 12006
-      //$$ text.render(buffer, poseStack, rot, cpos.x, cpos.y, cpos.z);
-      //#else
-      text.render(buffer, ps, rot, cpos.x, cpos.y, cpos.z);
+      poseStack = RenderSystem.getModelViewStack();
       //#endif
+      //#if MC >= 11900
+      //$$ Quaternionf rot = camera.rotation();
+      //#else
+      Quaternion rot = camera.rotation();
+      //#endif
+      for (Text text : texts)
+        text.render(buffer, poseStack, rot, cpos.x, cpos.y, cpos.z);
+    }
   }
 
   public static synchronized void clear()
@@ -77,6 +86,7 @@ public class LevelRenderer
     hlPos.clear();
     texts.clear();
   }
+
   public static synchronized boolean hasOutline(){
     return !hlPos.isEmpty();
   }
@@ -131,12 +141,9 @@ public class LevelRenderer
     @Override
     public void render(PoseStack poseStack, Camera camera, OutlineBufferSource outlineBufferSource, Level level)
     {
-
       BlockState state = level.getBlockState(pos);
       BlockRenderDispatcher blockRenderManager = mc.getBlockRenderer();
       BlockEntity blockEntity = level.getBlockEntity(pos);
-
-      this.setOutlineColor(outlineBufferSource, color.intValue);
       poseStack.pushPose();
       Vec3 cpos = camera.getPosition();
       poseStack.translate(pos.getX() - cpos.x, pos.getY() - cpos.y, pos.getZ() - cpos.z);
@@ -144,42 +151,39 @@ public class LevelRenderer
       if (blockEntity != null) {
         BlockEntityRenderDispatcher blockEntityRenderDispatcher = mc.getBlockEntityRenderDispatcher();
         blockEntityRenderDispatcher.render(blockEntity, 0.0f, poseStack, outlineBufferSource);
-      }
-
-      if (state.getRenderShape() != RenderShape.MODEL) {
+      } else {
+        if (state.getRenderShape() != RenderShape.MODEL) {
+          poseStack.popPose();
+          return;
+        }
+        BakedModel model = blockRenderManager.getBlockModel(state);
+        VertexConsumer vertexConsumer = outlineBufferSource.getBuffer(RenderType.entityTranslucent(TextureAtlas.LOCATION_BLOCKS));
+        InvisibleVertexConsumer invisibleConsumer = new InvisibleVertexConsumer(vertexConsumer);
+        blockRenderManager.getModelRenderer().renderModel(
+                poseStack.last(),
+                invisibleConsumer,
+                state,
+                model,
+                color.r, color.g, color.b,
+                net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos),
+                OverlayTexture.NO_OVERLAY
+        );
         poseStack.popPose();
-        return;
       }
+    }
+  }
 
-      BakedModel model = blockRenderManager.getBlockModel(state);
-      VertexConsumer vertexConsumer = outlineBufferSource.getBuffer(RenderType.entityTranslucent(TextureAtlas.LOCATION_BLOCKS));
-      InvisibleVertexConsumer invisibleConsumer = new InvisibleVertexConsumer(vertexConsumer);
-      blockRenderManager.getModelRenderer().renderModel(
-              poseStack.last(),
-              invisibleConsumer,
-              state,
-              model,
-              color.r, color.g, color.b,
-              net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos),
-              OverlayTexture.NO_OVERLAY
-      );
+  public static void setOutlineColor(OutlineBufferSource outlineProvider, int color) {
+    int red = (color >> 16) & 0xFF;
+    int green = (color >> 8) & 0xFF;
+    int blue = color & 0xFF;
+    int alpha = (color >> 24) & 0xFF;
 
-      outlineBufferSource.setColor(255,255,255,255);
-      poseStack.popPose();
+    if (alpha == 0) {
+      alpha = 255;
     }
 
-    public void setOutlineColor(OutlineBufferSource outlineProvider, int color) {
-      int red = (color >> 16) & 0xFF;
-      int green = (color >> 8) & 0xFF;
-      int blue = color & 0xFF;
-      int alpha = (color >> 24) & 0xFF;
-
-      if (alpha == 0) {
-        alpha = 255;
-      }
-
-      outlineProvider.setColor(red, green, blue, alpha);
-    }
+    outlineProvider.setColor(red, green, blue, alpha);
   }
 
   private static class InvisibleVertexConsumer implements VertexConsumer {
@@ -275,10 +279,8 @@ public class LevelRenderer
       poseStack.translate((float)(x - cx), (float)(y - cy), (float)(z - cz));
       poseStack.mulPose(rotation);
       poseStack.scale(-0.07F, -0.07F, 0.07F);
-      //#if MC < 12006
       RenderSystem.applyModelViewMatrix();
-      //#endif
-      MultiBufferSource.BufferSource immediate = mc.renderBuffers().bufferSource();
+      MultiBufferSource.BufferSource immediate = MultiBufferSource.immediate(buffer);
       //#if MC >= 12006
       //$$ font.drawInBatch(text, -font.width(text)/2F, -font.lineHeight * 0.5F, color.intValue, false, poseStack.last().pose(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
       //#else
@@ -318,11 +320,8 @@ public class LevelRenderer
       poseStack.translate((float)(x - cx), (float)(y - cy), (float)(z - cz));
       poseStack.mulPose(rotation);
       poseStack.scale(-0.07F, -0.07F, 0.08F);
-      //#if MC < 12006
       RenderSystem.applyModelViewMatrix();
-      //#endif
-
-      MultiBufferSource.BufferSource immediate = mc.renderBuffers().bufferSource();
+      MultiBufferSource.BufferSource immediate = MultiBufferSource.immediate(buffer);
       //#if MC >= 12006
       //$$ font.drawInBatch(index, -font.width(index)/2F, -font.lineHeight * 0.5F, color1, false, poseStack.last().pose(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
       //#else
@@ -336,10 +335,8 @@ public class LevelRenderer
 
       poseStack.translate(font.width(index)/2F, 0, 0);
       poseStack.scale(0.5F, 0.5F, 0.5F);
-      //#if MC < 12006
       RenderSystem.applyModelViewMatrix();
-      //#endif
-      immediate = mc.renderBuffers().bufferSource();
+      immediate = MultiBufferSource.immediate(buffer);
       //#if MC >= 12006
       //$$ font.drawInBatch(depth, -font.width(depth)/2F, font.lineHeight + 1, color2, false, poseStack.last().pose(), immediate, Font.DisplayMode.SEE_THROUGH, 0x00000000, 0x00000000);
       //#else
