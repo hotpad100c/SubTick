@@ -17,7 +17,6 @@ import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.BlockStateModel;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.entity.state.HitboxesRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.state.CameraRenderState;
@@ -37,6 +36,12 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
+//#if MC >= 12111
+//$$ import net.minecraft.client.renderer.rendertype.RenderType;
+//$$ import net.minecraft.client.renderer.rendertype.RenderTypes;
+//#else
+import net.minecraft.client.renderer.entity.state.HitboxesRenderState;
+//#endif
 
 import java.util.HashSet;
 import java.util.List;
@@ -139,7 +144,11 @@ public class LevelRenderer
         @Override
         public void render(PoseStack poseStack, Camera camera, LevelRenderState levelRenderState, SubmitNodeCollector output, OutlineBufferSource outlineBufferSource, Level level)
         {
+            //#if MC >= 12111
+            //$$ RenderType outlineType = RenderTypes.outline(TextureAtlas.LOCATION_BLOCKS);
+            //#else
             RenderType outlineType = RenderType.outline(TextureAtlas.LOCATION_BLOCKS);
+            //#endif
             BlockState state = level.getBlockState(pos);
             BlockRenderDispatcher blockRenderManager = mc.getBlockRenderer();
             BlockEntity blockEntity = level.getBlockEntity(pos);
@@ -184,11 +193,12 @@ public class LevelRenderer
             this.delegate = delegate;
             this.outlineColor = outlineColor;
         }
-
+        //#if MC < 12111
         @Override
         public void submitHitbox(PoseStack poseStack, EntityRenderState entityRenderState, HitboxesRenderState hitboxesRenderState) {
             this.delegate.submitHitbox(poseStack, entityRenderState, hitboxesRenderState);
         }
+        //#endif
 
         @Override
         public void submitShadow(PoseStack poseStack, float f, List<EntityRenderState.ShadowPiece> list) {
