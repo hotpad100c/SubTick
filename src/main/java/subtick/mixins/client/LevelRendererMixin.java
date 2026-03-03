@@ -103,11 +103,7 @@ public class LevelRendererMixin
   )
   {
     OutlineBufferSource outlineBufferSource = this.renderBuffers.outlineBufferSource();
-    //#if MC >= 12109
-    //$$ subtick.client.LevelRenderer.render(poseStack, levelRenderState, this.submitNodeStorage, outlineBufferSource, false);
-    //#else
     subtick.client.LevelRenderer.render(poseStack, outlineBufferSource, false);
-    //#endif
   }
 
   //#if MC >= 12111
@@ -138,11 +134,7 @@ public class LevelRendererMixin
           PoseStack poseStack, float delta, long time, boolean renderBlockOutline, Camera camera, GameRenderer renderer, LightTexture lightTexture, Matrix4f projMatrix, CallbackInfo ci
           //#endif
   ) {
-    //#if MC >= 12109
-    //$$ subtick.client.LevelRenderer.render(poseStack, null, null, null, true);
-    //#else
     subtick.client.LevelRenderer.render(poseStack, null, true);
-    //#endif
   }
 
   @Inject(method = "shouldShowEntityOutlines()Z", at = @At("HEAD"), cancellable = true)

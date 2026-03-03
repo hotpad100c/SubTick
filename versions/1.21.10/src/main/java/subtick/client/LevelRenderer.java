@@ -57,8 +57,10 @@ public class LevelRenderer
     public static ThreadLocal<Boolean> b36Flag = ThreadLocal.withInitial(() -> false);
     public static ThreadLocal<Integer> color = ThreadLocal.withInitial(() -> 0);
 
-    public static synchronized void render(PoseStack poseStack, LevelRenderState levelRenderState, SubmitNodeCollector output, OutlineBufferSource outlineBufferSource, boolean renderText) {
+    public static synchronized void render(PoseStack poseStack, OutlineBufferSource outlineBufferSource, boolean renderText) {
         Camera camera = mc.gameRenderer.getMainCamera();
+        LevelRenderState levelRenderState = mc.gameRenderer.getLevelRenderState();
+        SubmitNodeCollector output = mc.gameRenderer.getSubmitNodeStorage();
         Vec3 cpos = camera.position();
         if (!renderText) {
             Map<Integer, List<Outline>> groupedOutlines = hlPos.stream()
