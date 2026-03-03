@@ -172,7 +172,7 @@ public class LevelRenderer
         //#else
         blockRenderManager.getModelRenderer().renderModel(
                 //#endif
-                poseStack.last(),
+                poseStack.last().copy(),
                 invisibleConsumer,
                 //#if MC < 12105
                 state,
