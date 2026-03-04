@@ -124,7 +124,7 @@ public class LevelRenderer
     public void render(PoseStack poseStack, Camera camera, OutlineBufferSource outlineBufferSource, Level level);
   }
 
-  private static record Outline(BlockPos pos, Color4f color) implements Pos
+  private record Outline(BlockPos pos, Color4f color) implements Pos
   {
     @Override
     public boolean equals(Object b)
@@ -150,7 +150,7 @@ public class LevelRenderer
 
       if (blockEntity != null) {
         BlockEntityRenderDispatcher blockEntityRenderDispatcher = mc.getBlockEntityRenderDispatcher();
-        blockEntityRenderDispatcher.render(blockEntity, 0.0f, poseStack, outlineBufferSource);
+        blockEntityRenderDispatcher.render(blockEntity, 0.0f, poseStack, new InvisibleOutlineBufferSource(outlineBufferSource));
       } else {
         if (state.getRenderShape() != RenderShape.MODEL) {
           poseStack.popPose();
@@ -168,8 +168,8 @@ public class LevelRenderer
                 net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos),
                 OverlayTexture.NO_OVERLAY
         );
-        poseStack.popPose();
       }
+      poseStack.popPose();
     }
   }
 
@@ -184,6 +184,20 @@ public class LevelRenderer
     }
 
     outlineProvider.setColor(red, green, blue, alpha);
+  }
+
+  public static class InvisibleOutlineBufferSource implements MultiBufferSource {
+    private final OutlineBufferSource outlineBufferSource;
+
+    public InvisibleOutlineBufferSource(OutlineBufferSource outlineBufferSource) {
+      this.outlineBufferSource = outlineBufferSource;
+    }
+
+    @Override
+    public VertexConsumer getBuffer(RenderType renderType) {
+      VertexConsumer vertexConsumer = this.outlineBufferSource.getBuffer(renderType);
+      return new InvisibleVertexConsumer(vertexConsumer);
+    }
   }
 
   private static class InvisibleVertexConsumer implements VertexConsumer {

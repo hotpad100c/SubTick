@@ -10,6 +10,7 @@
     "ServerLevelMixin",
     "TickCommandMixin",
     "carpet.TickCommandMixin",
+    "client.BlockEnrityRendererMixin",
     "client.BlockFeatureRendererMixin",
     "client.MinecraftMixin",
     "lithium.LithiumServerTickSchedulerAccessor"

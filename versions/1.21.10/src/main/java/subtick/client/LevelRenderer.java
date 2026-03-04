@@ -43,10 +43,7 @@ import org.joml.Quaternionf;
 import net.minecraft.client.renderer.entity.state.HitboxesRenderState;
 //#endif
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class LevelRenderer
@@ -56,12 +53,14 @@ public class LevelRenderer
     private static final HashSet<Text> texts = new HashSet<>();
     public static ThreadLocal<Boolean> b36Flag = ThreadLocal.withInitial(() -> false);
     public static ThreadLocal<Integer> color = ThreadLocal.withInitial(() -> 0);
+    public static final HashMap<BlockPos,Integer> hlBe = new HashMap<>();
 
     public static synchronized void render(PoseStack poseStack, OutlineBufferSource outlineBufferSource, boolean renderText) {
         Camera camera = mc.gameRenderer.getMainCamera();
         LevelRenderState levelRenderState = mc.gameRenderer.getLevelRenderState();
         SubmitNodeCollector output = mc.gameRenderer.getSubmitNodeStorage();
         Vec3 cpos = camera.position();
+        LevelRenderer.hlBe.clear();
         if (!renderText) {
             Map<Integer, List<Outline>> groupedOutlines = hlPos.stream()
                     .filter(p -> p instanceof Outline)
@@ -74,7 +73,8 @@ public class LevelRenderer
                 for (Outline o : entry.getValue()) {
                     o.render(poseStack, camera, levelRenderState, output, outlineBufferSource, mc.level);
                 }
-                outlineBufferSource.endOutlineBatch();
+                outlineBufferSource.setColor(-1);
+                //outlineBufferSource.endOutlineBatch();
             }
         } else {
             if (!texts.isEmpty()) {
@@ -158,30 +158,29 @@ public class LevelRenderer
             Vec3 cpos = camera.position();
             poseStack.translate(pos.getX() - cpos.x, pos.getY() - cpos.y, pos.getZ() - cpos.z);
 
-            if (blockEntity != null) {
+            if (blockEntity != null) {//See BlockEntityRendererMixin
                 BlockEntityRenderDispatcher blockEntityRenderDispatcher = mc.getBlockEntityRenderDispatcher();
                 var renderer = blockEntityRenderDispatcher.getRenderer(blockEntity);
                 if (renderer != null) {
-                    OutlineCollectorWrapper wrapper = new OutlineCollectorWrapper(output, color.intValue);
-                    var renderState = renderer.createRenderState();
-                    renderer.submit(renderState, poseStack, wrapper, levelRenderState.cameraRenderState);
+                    hlBe.put(pos,color.intValue);
                 }
-            } else {
-                if (state.getRenderShape() != RenderShape.MODEL) {
-                    return;
-                }
-                BlockStateModel model = blockRenderManager.getBlockModel(state);
-                VertexConsumer vertexConsumer = outlineBufferSource.getBuffer(outlineType);
-                InvisibleVertexConsumer invisibleConsumer = new InvisibleVertexConsumer(vertexConsumer);
-                ModelBlockRenderer.renderModel(
-                        poseStack.last(),
-                        invisibleConsumer,
-                        model,
-                        color.r, color.g, color.b,
-                        net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos),
-                        OverlayTexture.NO_OVERLAY
-                );
             }
+            if (state.getRenderShape() != RenderShape.MODEL) {
+                poseStack.popPose();
+                return;
+            }
+            BlockStateModel model = blockRenderManager.getBlockModel(state);
+            VertexConsumer vertexConsumer = outlineBufferSource.getBuffer(outlineType);
+            InvisibleVertexConsumer invisibleConsumer = new InvisibleVertexConsumer(vertexConsumer);
+            ModelBlockRenderer.renderModel(
+                    poseStack.last(),
+                    invisibleConsumer,
+                    model,
+                    color.r, color.g, color.b,
+                    net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos),
+                    OverlayTexture.NO_OVERLAY
+            );
+
             poseStack.popPose();
         }
     }
