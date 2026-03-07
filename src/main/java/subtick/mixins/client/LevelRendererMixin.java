@@ -87,7 +87,14 @@ public class LevelRendererMixin
           //#else
           method = "renderLevel",
           //#endif
-          at = @At(value = "INVOKE", target = "Ljava/util/List;iterator()Ljava/util/Iterator;", ordinal = 0))
+          //#if MC >= 12110
+          //$$ at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/util/function/Supplier;)V", args = "ldc=submitEntities")
+          //#elseif MC >= 12108
+          //$$ at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderEntities(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/Camera;Lnet/minecraft/client/DeltaTracker;Ljava/util/List;)V")
+          //#else
+          at = @At(value = "CONSTANT", args = "stringValue=blockentities", ordinal = 0)
+          //#endif
+  )
   private void onRenderWorldLastNormal(
           //#if MC >= 12111
           //$$ GpuBufferSlice gpuBufferSlice, LevelRenderState levelRenderState, ProfilerFiller profilerFiller, Matrix4f matrix4f, ResourceHandle<?> resourceHandle, ResourceHandle<?> resourceHandle2, boolean bl, ResourceHandle<?> resourceHandle3, ResourceHandle<?> resourceHandle4, CallbackInfo ci, @Local PoseStack poseStack
