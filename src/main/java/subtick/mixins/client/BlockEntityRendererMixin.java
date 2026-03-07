@@ -4,5 +4,5 @@ import org.spongepowered.asm.mixin.Mixin;
 import subtick.DummyClass;
 
 @Mixin(DummyClass.class)
-public class BlockEnrityRendererMixin {//1.21.10+
+public class BlockEntityRendererMixin {//1.21.10+
 }

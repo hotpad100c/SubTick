@@ -9,11 +9,13 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.google.gson.Strictness;
 import com.google.gson.stream.JsonReader;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.serialization.JsonOps;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.TextureSetup;
+import net.minecraft.client.gui.render.state.GuiElementRenderState;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.chat.MutableComponent;
@@ -27,8 +29,9 @@ import fi.dy.masa.malilib.util.data.Color4f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
+import org.joml.Matrix3x2f;
 import org.joml.Vector2f;
 import subtick.QueueElement;
 import subtick.TickPhase;
@@ -46,7 +49,6 @@ public class HudRenderer
     private static Color4f TO_STEP_BG;
     private static int TO_STEP_TEXT;
     private static Color4f NEW_BG;
-    private static int NEW_TEXT;
 
     private static Pair<Integer, Integer> trimQueue(int max, int maxHighlights)
     {
@@ -139,7 +141,6 @@ public class HudRenderer
             TO_STEP_BG = Configs.TO_STEP_BG.getColor();
             TO_STEP_TEXT = Configs.TO_STEP_TEXT.getColor().intValue;
             NEW_BG = Configs.NEW_BG.getColor();
-            NEW_TEXT = Configs.NEW_TEXT.getColor().intValue;
 
             TickPhase tickPhase = ClientTickHandler.tickPhase;
 
@@ -350,5 +351,59 @@ public class HudRenderer
                 color.intValue,
                 guiGraphics.scissorStack.peek()
         ));
+    }
+
+    public record CustomMeshRenderState(
+            RenderPipeline pipeline,
+            TextureSetup textureSetup,
+            Matrix3x2f pose,
+            Vector2f[] vertices,
+            int color,
+            @Nullable ScreenRectangle scissorArea
+    ) implements GuiElementRenderState {
+
+        @Override
+        //#if MC >= 12110
+        //$$ public void buildVertices(VertexConsumer vertexConsumer) {
+        //#else
+        public void buildVertices(VertexConsumer vertexConsumer, float z) {
+            //#endif
+            for (int i = 0; i < 4; i++) {
+                Vector2f v = (i < vertices.length) ? vertices[i] : vertices[vertices.length - 1];
+                //#if MC >= 12110
+                //$$ vertexConsumer.addVertexWith2DPose(this.pose, v.x, v.y)
+                //#else
+                vertexConsumer.addVertexWith2DPose(this.pose, v.x, v.y, z)
+                        //#endif
+                        .setColor(this.color);
+            }
+        }
+
+        @Override
+        public ScreenRectangle bounds() {
+            float minX = Float.MAX_VALUE;
+            float minY = Float.MAX_VALUE;
+            float maxX = -Float.MAX_VALUE;
+            float maxY = -Float.MAX_VALUE;
+
+            for (Vector2f v : vertices) {
+                minX = Math.min(minX, v.x);
+                minY = Math.min(minY, v.y);
+                maxX = Math.max(maxX, v.x);
+                maxY = Math.max(maxY, v.y);
+            }
+
+            return new ScreenRectangle((int)minX, (int)minY, (int)(maxX - minX), (int)(maxY - minY));
+        }
+
+        @Override
+        public @NotNull RenderPipeline pipeline() { return pipeline; }
+
+        @Override
+        public @NotNull TextureSetup textureSetup() { return textureSetup; }
+
+        @Override
+        @Nullable
+        public ScreenRectangle scissorArea() { return scissorArea; }
     }
 }

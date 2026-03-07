@@ -1,8 +1,6 @@
 package subtick.client;
 
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.*;
 import fi.dy.masa.malilib.util.data.Color4f;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -48,10 +46,30 @@ import java.util.stream.Collectors;
 
 public class LevelRenderer
 {
+    private static final com.mojang.blaze3d.pipeline.RenderPipeline WORLD_QUAD_PIPELINE = com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.DEBUG_FILLED_SNIPPET)
+            .withLocation(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("subtick", "world_quads"))
+            .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
+            .withDepthWrite(false)
+            .withCull(false)
+            .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
+            .build();
+    public static final net.minecraft.client.renderer.RenderType WORLD_QUADS = net.minecraft.client.renderer.RenderType.create(
+            "subtick_world_quads",
+    //#if MC >= 12111
+    //$$ net.minecraft.client.renderer.rendertype.RenderSetup.builder(WORLD_QUAD_PIPELINE)
+    //$$                .affectsCrumbling()
+    //$$                .sortOnUpload()
+    //$$                .bufferSize(256)
+    //$$                .createRenderSetup()
+    //#else
+    256, false, true, WORLD_QUAD_PIPELINE,
+            net.minecraft.client.renderer.RenderType.CompositeState.builder()
+                     .createCompositeState(false)
+    //#endif
+    );
     private static final Minecraft mc = Minecraft.getInstance();
     private static final HashSet<Pos> hlPos = new HashSet<>();
     private static final HashSet<Text> texts = new HashSet<>();
-    public static ThreadLocal<Boolean> b36Flag = ThreadLocal.withInitial(() -> false);
     public static ThreadLocal<Integer> color = ThreadLocal.withInitial(() -> 0);
     public static final HashMap<BlockPos,Integer> hlBe = new HashMap<>();
 
@@ -71,12 +89,18 @@ public class LevelRenderer
                 int color = entry.getKey();
                 outlineBufferSource.setColor(color);
                 for (Outline o : entry.getValue()) {
-                    o.render(poseStack, camera, levelRenderState, output, outlineBufferSource, mc.level);
+                    o.render(null, poseStack, camera, levelRenderState, output, outlineBufferSource, mc.level, true);
                 }
                 outlineBufferSource.setColor(-1);
-                //outlineBufferSource.endOutlineBatch();
             }
         } else {
+            if (!Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) {
+                BufferBuilder quadBuffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                for (Pos pos : hlPos) {
+                    pos.render(quadBuffer, poseStack, camera, levelRenderState, output, outlineBufferSource, mc.level, false);
+                }
+                WORLD_QUADS.draw(quadBuffer.buildOrThrow());
+            }
             if (!texts.isEmpty()) {
                 for (Text text : texts) {
                     text.render(null, poseStack, camera.rotation(), cpos.x, cpos.y, cpos.z);
@@ -124,12 +148,12 @@ public class LevelRenderer
         }
     }
 
-    private static interface Pos
+    private interface Pos
     {
-        public void render(PoseStack poseStack, Camera camera, LevelRenderState levelRenderState, SubmitNodeCollector output, OutlineBufferSource outlineBufferSource, Level level);
+        void render(BufferBuilder buffer, PoseStack poseStack, Camera camera, LevelRenderState levelRenderState, SubmitNodeCollector output, OutlineBufferSource outlineBufferSource, Level level, boolean NEW);
     }
 
-    private static record Outline(BlockPos pos, Color4f color) implements Pos
+    private record Outline(BlockPos pos, Color4f color) implements Pos
     {
         @Override
         public boolean equals(Object b)
@@ -143,9 +167,53 @@ public class LevelRenderer
             return Objects.hash(pos);
         }
 
+        @SuppressWarnings("deprecation")
         @Override
-        public void render(PoseStack poseStack, Camera camera, LevelRenderState levelRenderState, SubmitNodeCollector output, OutlineBufferSource outlineBufferSource, Level level)
+        public void render(BufferBuilder buffer, PoseStack poseStack, Camera camera, LevelRenderState levelRenderState, SubmitNodeCollector output, OutlineBufferSource outlineBufferSource, Level level, boolean NEW)
         {
+            if (!NEW) {
+                double cx = camera.getPosition().x;
+                double cy = camera.getPosition().y;
+                double cz = camera.getPosition().z;
+                double x1 = pos.getX();
+                double y1 = pos.getY();
+                double z1 = pos.getZ();
+                double x2 = x1 + 1;
+                double y2 = y1 + 1;
+                double z2 = z1 + 1;
+                double x = x1 - cx, y = y1 - cy, z = z1 - cz;
+                double X = x2 - cx, Y = y2 - cy, Z = z2 - cz;
+                buffer.addVertex((float) x, (float) y, (float) z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) x, (float) Y, (float) z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) x, (float) Y, (float) Z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) x, (float) y, (float) Z).setColor(color.r, color.g, color.b, color.a);
+
+                buffer.addVertex((float) X,(float) y,(float) z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) X,(float) y,(float) Z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) X,(float) Y,(float) Z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) X,(float) Y,(float) z).setColor(color.r, color.g, color.b, color.a);
+
+                buffer.addVertex((float) x,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) x,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) X,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) X,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+
+                buffer.addVertex((float) x,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) X,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) X,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) x,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+
+                buffer.addVertex((float) x,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) X,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) X,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) x,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+
+                buffer.addVertex((float) x,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) x,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) X,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+                buffer.addVertex((float) X,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+                return;
+            }
             //#if MC >= 12111
             //$$ RenderType outlineType = RenderTypes.outline(TextureAtlas.LOCATION_BLOCKS);
             //#else
@@ -246,14 +314,7 @@ public class LevelRenderer
 
         @Override
         public void submitMovingBlock(PoseStack poseStack, MovingBlockRenderState movingBlockRenderState) {
-            try {
-                LevelRenderer.b36Flag.set(true);
-                LevelRenderer.color.set(outlineColor);
-                delegate.submitMovingBlock(poseStack, movingBlockRenderState);
-            } finally {
-                LevelRenderer.b36Flag.remove();
-                LevelRenderer.color.remove();
-            }
+            delegate.submitMovingBlock(poseStack, movingBlockRenderState);
         }
 
         @Override
@@ -333,12 +394,12 @@ public class LevelRenderer
         //#endif
     }
 
-    private static interface Text
+    private interface Text
     {
-        public void render(BufferBuilder builder, PoseStack poseStack, Quaternionf rotation, double cx, double cy, double cz);
+        void render(BufferBuilder builder, PoseStack poseStack, Quaternionf rotation, double cx, double cy, double cz);
     }
 
-    private static record TextBasic(String text, double x, double y, double z, Color4f color) implements Text
+    private record TextBasic(String text, double x, double y, double z, Color4f color) implements Text
     {
         @Override
         public boolean equals(Object b)
@@ -367,7 +428,7 @@ public class LevelRenderer
         }
     }
 
-    private static record DepthLabel(String index, String depth, double x, double y, double z, int color1, int color2) implements Text
+    private record DepthLabel(String index, String depth, double x, double y, double z, int color1, int color2) implements Text
     {
         @Override
         public boolean equals(Object b)

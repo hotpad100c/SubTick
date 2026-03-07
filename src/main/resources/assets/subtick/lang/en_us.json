@@ -1,5 +1,6 @@
 {
   "carpet.category.subtick": "SubTick",
+  "subtick.gui.title.configs":  "SubTick",
 
   "subtick.tickPhase.worldBorder":      "World Border",
   "subtick.tickPhase.weather":          "Weather",

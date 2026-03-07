@@ -44,6 +44,29 @@ import java.util.stream.Collectors;
 
 public class LevelRenderer
 {
+  //#if MC >= 12105
+  //$$ private static final com.mojang.blaze3d.pipeline.RenderPipeline WORLD_QUAD_PIPELINE = com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.DEBUG_FILLED_SNIPPET)
+  //$$         .withLocation(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("subtick", "world_quads"))
+  //$$         .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
+  //$$         .withDepthWrite(false)
+  //$$         .withCull(false)
+  //$$         .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
+  //$$         .build();
+  //$$ public static final net.minecraft.client.renderer.RenderType WORLD_QUADS = net.minecraft.client.renderer.RenderType.create(
+  //$$         "subtick_world_quads",
+  //#if MC >= 12111
+  //$$ net.minecraft.client.renderer.rendertype.RenderSetup.builder(WORLD_QUAD_PIPELINE)
+  //$$                .affectsCrumbling()
+  //$$                .sortOnUpload()
+  //$$                .bufferSize(256)
+  //$$                .createRenderSetup()
+  //#else
+  //$$ 256, false, true, WORLD_QUAD_PIPELINE,
+  //$$         net.minecraft.client.renderer.RenderType.CompositeState.builder()
+  //$$                 .createCompositeState(false)
+  //#endif
+  //$$ );
+  //#endif
   private static final Minecraft mc = Minecraft.getInstance();
   private static final HashSet<Pos> hlPos = new HashSet<>();
   private static final HashSet<Text> texts = new HashSet<>();
@@ -55,7 +78,7 @@ public class LevelRenderer
     //#else
     Vec3 cpos = camera.getPosition();
     //#endif
-    if (!renderText) {
+    if (!renderText && Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) {
       Map<Integer, List<Outline>> groupedOutlines = hlPos.stream()
               .filter(p -> p instanceof Outline)
               .map(o -> (Outline) o)
@@ -64,12 +87,23 @@ public class LevelRenderer
       for (Map.Entry<Integer, List<Outline>> entry : groupedOutlines.entrySet()) {
         int color = entry.getKey();
         setOutlineColor(outlineBufferSource, color);
-        for (Outline o : entry.getValue()) {
-          o.render(poseStack, camera, outlineBufferSource, mc.level);
+        for (Pos pos : entry.getValue()) {
+          pos.render(null, poseStack, camera, outlineBufferSource, mc.level, true);
         }
-        outlineBufferSource.endOutlineBatch();
+        setOutlineColor(outlineBufferSource, -1);
       }
     } else {
+      if (!Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) {
+        BufferBuilder quadBuffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        for (Pos pos : hlPos) {
+          pos.render(quadBuffer, poseStack, camera, outlineBufferSource, mc.level, false);
+        }
+        //#if MC >= 12105
+        //$$ WORLD_QUADS.draw(quadBuffer.buildOrThrow());
+        //#else
+        BufferUploader.drawWithShader(quadBuffer.buildOrThrow());
+        //#endif
+      }
       if (!texts.isEmpty()) {
         //#if MC < 12105
         //#if MC >= 12103
@@ -127,12 +161,12 @@ public class LevelRenderer
     }
   }
 
-  private static interface Pos
+  private interface Pos
   {
-    public void render(PoseStack poseStack, Camera camera, OutlineBufferSource outlineBufferSource, Level level);
+    void render(BufferBuilder buffer, PoseStack poseStack, Camera camera, OutlineBufferSource outlineBufferSource, Level level, boolean NEW);
   }
 
-  private static record Outline(BlockPos pos, Color4f color) implements Pos
+  private record Outline(BlockPos pos, Color4f color) implements Pos
   {
     @Override
     public boolean equals(Object b)
@@ -146,9 +180,53 @@ public class LevelRenderer
       return Objects.hash(pos);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
-    public void render(PoseStack poseStack, Camera camera, OutlineBufferSource outlineBufferSource, Level level)
+    public void render(BufferBuilder buffer, PoseStack poseStack, Camera camera, OutlineBufferSource outlineBufferSource, Level level, boolean NEW)
     {
+      if (!NEW) {
+        double cx = camera.getPosition().x;
+        double cy = camera.getPosition().y;
+        double cz = camera.getPosition().z;
+        double x1 = pos.getX();
+        double y1 = pos.getY();
+        double z1 = pos.getZ();
+        double x2 = x1 + 1;
+        double y2 = y1 + 1;
+        double z2 = z1 + 1;
+        double x = x1 - cx, y = y1 - cy, z = z1 - cz;
+        double X = x2 - cx, Y = y2 - cy, Z = z2 - cz;
+        buffer.addVertex((float) x, (float) y, (float) z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) x, (float) Y, (float) z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) x, (float) Y, (float) Z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) x, (float) y, (float) Z).setColor(color.r, color.g, color.b, color.a);
+
+        buffer.addVertex((float) X,(float) y,(float) z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) X,(float) y,(float) Z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) X,(float) Y,(float) Z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) X,(float) Y,(float) z).setColor(color.r, color.g, color.b, color.a);
+
+        buffer.addVertex((float) x,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) x,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) X,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) X,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+
+        buffer.addVertex((float) x,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) X,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) X,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) x,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+
+        buffer.addVertex((float) x,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) X,(float)  y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) X,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) x,(float)  Y,(float)  z).setColor(color.r, color.g, color.b, color.a);
+
+        buffer.addVertex((float) x,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) x,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) X,(float)  Y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+        buffer.addVertex((float) X,(float)  y,(float)  Z).setColor(color.r, color.g, color.b, color.a);
+        return;
+      }
       BlockState state = level.getBlockState(pos);
       BlockRenderDispatcher blockRenderManager = mc.getBlockRenderer();
       BlockEntity blockEntity = level.getBlockEntity(pos);
@@ -158,31 +236,30 @@ public class LevelRenderer
 
       if (blockEntity != null) {
         BlockEntityRenderDispatcher blockEntityRenderDispatcher = mc.getBlockEntityRenderDispatcher();
-        blockEntityRenderDispatcher.render(blockEntity, 0.0f, poseStack, outlineBufferSource);
-      } else {
-        if (state.getRenderShape() != RenderShape.MODEL) {
-          poseStack.popPose();
-          return;
-        }
-        BakedModel model = blockRenderManager.getBlockModel(state);
-        VertexConsumer vertexConsumer = outlineBufferSource.getBuffer(RenderType.entityTranslucent(TextureAtlas.LOCATION_BLOCKS));
-        InvisibleVertexConsumer invisibleConsumer = new InvisibleVertexConsumer(vertexConsumer);
-        //#if MC >= 12105
-        //$$ ModelBlockRenderer.renderModel(
-        //#else
-        blockRenderManager.getModelRenderer().renderModel(
-                //#endif
-                poseStack.last().copy(),
-                invisibleConsumer,
-                //#if MC < 12105
-                state,
-                //#endif
-                model,
-                color.r, color.g, color.b,
-                net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos),
-                OverlayTexture.NO_OVERLAY
-        );
+        blockEntityRenderDispatcher.render(blockEntity, 1.0f, poseStack, new InvisibleOutlineBufferSource(outlineBufferSource));
       }
+      if (state.getRenderShape() != RenderShape.MODEL) {
+        poseStack.popPose();
+        return;
+      }
+      BakedModel model = blockRenderManager.getBlockModel(state);
+      VertexConsumer vertexConsumer = new InvisibleOutlineBufferSource(outlineBufferSource).getBuffer(RenderType.outline(TextureAtlas.LOCATION_BLOCKS));
+      InvisibleVertexConsumer invisibleConsumer = new InvisibleVertexConsumer(vertexConsumer);
+      //#if MC >= 12105
+      //$$ ModelBlockRenderer.renderModel(
+      //#else
+      blockRenderManager.getModelRenderer().renderModel(
+              //#endif
+              poseStack.last().copy(),
+              invisibleConsumer,
+              //#if MC < 12105
+              state,
+              //#endif
+              model,
+              color.r, color.g, color.b,
+              net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos),
+              OverlayTexture.NO_OVERLAY
+      );
       poseStack.popPose();
     }
   }
@@ -200,7 +277,22 @@ public class LevelRenderer
     outlineProvider.setColor(red, green, blue, alpha);
   }
 
-  private static class InvisibleVertexConsumer implements VertexConsumer {
+  public static class InvisibleOutlineBufferSource implements MultiBufferSource {
+    private final OutlineBufferSource outlineBufferSource;
+
+    public InvisibleOutlineBufferSource(OutlineBufferSource outlineBufferSource) {
+      this.outlineBufferSource = outlineBufferSource;
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    public @NotNull VertexConsumer getBuffer(@NotNull RenderType renderType) {
+      VertexConsumer vertexConsumer = this.outlineBufferSource.getBuffer(RenderType.outline(TextureAtlas.LOCATION_BLOCKS));
+      return new InvisibleVertexConsumer(vertexConsumer);
+    }
+  }
+
+    private static class InvisibleVertexConsumer implements VertexConsumer {
     private final VertexConsumer delegate;
 
     public InvisibleVertexConsumer(VertexConsumer delegate) {
@@ -243,12 +335,12 @@ public class LevelRenderer
       return this;
     }
   }
-  private static interface Text
+  private interface Text
   {
-    public void render(BufferBuilder builder, PoseStack poseStack, Quaternionf rotation, double cx, double cy, double cz);
+    void render(BufferBuilder builder, PoseStack poseStack, Quaternionf rotation, double cx, double cy, double cz);
   }
 
-  private static record TextBasic(String text, double x, double y, double z, Color4f color) implements Text
+  private record TextBasic(String text, double x, double y, double z, Color4f color) implements Text
   {
     @Override
     public boolean equals(Object b)
@@ -280,7 +372,7 @@ public class LevelRenderer
     }
   }
 
-  private static record DepthLabel(String index, String depth, double x, double y, double z, int color1, int color2) implements Text
+  private record DepthLabel(String index, String depth, double x, double y, double z, int color1, int color2) implements Text
   {
     @Override
     public boolean equals(Object b)

@@ -6,6 +6,8 @@ import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 
 import net.minecraft.world.level.block.entity.BlockEntity;
+import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import subtick.client.ClientTickHandler;
 import org.spongepowered.asm.mixin.Mixin;
@@ -29,7 +31,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 //#else
 import com.mojang.math.Matrix4f;
 //#endif
-
+import subtick.client.Configs;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Final;
@@ -71,6 +73,10 @@ import carpet.fakes.MinecraftClientInferface;
 public class LevelRendererMixin
 {
   @Shadow @Final private RenderBuffers renderBuffers;
+  @Shadow @Nullable private PostChain entityEffect;
+  @Shadow @Final private Minecraft minecraft;
+  @Unique private ThreadLocal<Boolean> precessed = ThreadLocal.withInitial(() -> false);
+
   //#if MC >= 12109
   //$$ @Shadow @Final private SubmitNodeStorage submitNodeStorage;
   //$$ @Shadow @Final private LevelRenderState levelRenderState;
@@ -81,7 +87,7 @@ public class LevelRendererMixin
           //#else
           method = "renderLevel",
           //#endif
-          at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/RenderBuffers;bufferSource()Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;"))
+          at = @At(value = "INVOKE", target = "Ljava/util/List;iterator()Ljava/util/Iterator;", ordinal = 0))
   private void onRenderWorldLastNormal(
           //#if MC >= 12111
           //$$ GpuBufferSlice gpuBufferSlice, LevelRenderState levelRenderState, ProfilerFiller profilerFiller, Matrix4f matrix4f, ResourceHandle<?> resourceHandle, ResourceHandle<?> resourceHandle2, boolean bl, ResourceHandle<?> resourceHandle3, ResourceHandle<?> resourceHandle4, CallbackInfo ci, @Local PoseStack poseStack
@@ -139,7 +145,7 @@ public class LevelRendererMixin
 
   @Inject(method = "shouldShowEntityOutlines()Z", at = @At("HEAD"), cancellable = true)
   private void forceEntityOutline(CallbackInfoReturnable<Boolean> cir) {
-    if (subtick.client.LevelRenderer.hasOutline()) cir.setReturnValue(true);
+    if (subtick.client.LevelRenderer.hasOutline() && Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) cir.setReturnValue(true);
   }
   
   //#if MC >= 12109
@@ -162,14 +168,34 @@ public class LevelRendererMixin
   //#elseif MC >= 12103
   //$$ @ModifyArg(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;addMainPass(Lcom/mojang/blaze3d/framegraph/FrameGraphBuilder;Lnet/minecraft/client/renderer/culling/Frustum;Lnet/minecraft/client/Camera;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;Lnet/minecraft/client/renderer/FogParameters;ZZLnet/minecraft/client/DeltaTracker;Lnet/minecraft/util/profiling/ProfilerFiller;)V"), index = 6)
   //#else
-  @ModifyVariable(
+  @WrapOperation(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/PostChain;process(F)V"))
+  private void precess(PostChain instance, float f, Operation<Void> original) {
+    original.call(instance, f);
+    precessed.set(true);
+  }
+  @Inject(
           method = "renderLevel",
-          at = @At("STORE"),
-          ordinal = 2
+          at = @At(value = "INVOKE", target = "Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;long2ObjectEntrySet()Lit/unimi/dsi/fastutil/objects/ObjectSet;")
   )
   //#endif
-  private boolean forceEntityOutline2(boolean bl4) {
-       return subtick.client.LevelRenderer.hasOutline() || bl4;
+  private void forceEntityOutline2(
+          //#if MC >= 12101
+          //$$ DeltaTracker deltaTracker, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci, @Local PoseStack poseStack
+          //#elseif MC >= 12006
+          //$$ float delta, long l, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci, @Local PoseStack poseStack
+          //#else
+          PoseStack poseStack, float delta, long time, boolean renderBlockOutline, Camera camera, GameRenderer renderer, LightTexture lightTexture, Matrix4f projMatrix, CallbackInfo ci
+          //#endif
+  ) {
+       if (subtick.client.LevelRenderer.hasOutline() || !precessed.get()) {
+         //#if MC >= 12101
+         //$$ this.entityEffect.process(deltaTracker.getGameTimeDeltaTicks());
+         //#else
+         this.entityEffect.process(delta);
+         //#endif
+         this.minecraft.getMainRenderTarget().bindWrite(false);
+         precessed.set(false);
+       }
   }
   //#endif
 
@@ -191,24 +217,23 @@ public class LevelRendererMixin
   //#endif
 
   //#if MC < 12002
-  @Shadow @Final private Minecraft minecraft;
   float initial = -1234.0f;
 
   @ModifyVariable(method = "renderLevel", argsOnly = true, require = 0, ordinal = 0, at = @At(
-    value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;entitiesForRendering()Ljava/lang/Iterable;"
+          value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;entitiesForRendering()Ljava/lang/Iterable;"
   ))
   private float changeTickPhase(float previous)
   {
-      initial = previous;
+    initial = previous;
     if(ClientTickHandler.frozen)
       return ((MinecraftClientInferface)minecraft).getPausedTickDelta();
     return previous;
   }
 
   @ModifyVariable(method = "renderLevel", argsOnly = true, require = 0, ordinal = 0 ,at = @At(
-    value = "INVOKE",
-    target = "Lnet/minecraft/client/particle/ParticleEngine;render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;F)V",
-    shift = At.Shift.BEFORE
+          value = "INVOKE",
+          target = "Lnet/minecraft/client/particle/ParticleEngine;render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;F)V",
+          shift = At.Shift.BEFORE
   ))
   private float changeTickPhaseBack(float previous)
   {

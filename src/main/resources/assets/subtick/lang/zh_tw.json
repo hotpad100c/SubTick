@@ -1,5 +1,6 @@
 {
   "carpet.category.subtick": "SubTick",
+  "subtick.gui.title.configs":  "SubTick",
   "carpet.rule.subtickDefaultPhase.desc": "預設凍結並單步執行的刻階段",
   "carpet.rule.subtickTextFormat.desc": "SubTick 訊息中普通文字的格式（使用 Carpet 格式，參見 https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md     中的 \"format(components, ...)\"）",
   "carpet.rule.subtickNumberFormat.desc": "SubTick 訊息中數字的格式（使用 Carpet 格式，參見 https://github.com/gnembon/fabric-carpet/blob/master/docs/scarpet/api/Auxiliary.md     中的 \"format(components, ...)\"）",
