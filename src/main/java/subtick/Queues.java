@@ -65,17 +65,25 @@ public class Queues implements IQueues
     level = c.getLevel();
     newQueue.setMode(modeKey);
     TickPhase phase = new TickPhase(level, newQueue.getPhase());
-
-    if(force ? tickHandler.canStep(0, phase) : tickHandler.canStep(c, 0, phase))
-    {
-      step(newQueue, c, count, pos, range);
-      tickHandler.step(c, 0, phase);
+    if (force) {
+      if (tickHandler.canStep(0, phase) && !newQueue.exhausted) {
+        step(newQueue, c, count, pos, range);
+        tickHandler.step(c, 0, phase);
+        return;
+      }
+      if (tickHandler.frozen()) {
+        step(newQueue, c, count, pos, range);
+        tickHandler.step(c, 1, phase);
+        return;
+      }
+    } else {
+      if (tickHandler.canStep(c, 0, phase)) {
+        step(newQueue, c, count, pos, range);
+        tickHandler.step(c, 0, phase);
+        return;
+      }
     }
-    else if(force && tickHandler.canStep(c, 1, phase))
-    {
-      step(newQueue, c, count, pos, range);
-      tickHandler.step(c, 1, phase);
-    }
+    tickHandler.canStep(c, 0, phase);
   }
 
   @Override

@@ -72,6 +72,14 @@ public record TickPhase(int dim, int phase)
     //#endif
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof TickPhase other) {
+      return this.dim == other.dim && this.phase == other.phase;
+    }
+    return false;
+  }
+
   /*
    * Gets the next tick phase, changing dimension as necessary
    */
@@ -101,7 +109,10 @@ public record TickPhase(int dim, int phase)
 
   public boolean isPriorTo(TickPhase phase2)
   {
-    return dim < phase2.dim || phase < phase2.phase;
+    if (this.dim != phase2.dim) {
+      return this.dim < phase2.dim;
+    }
+    return this.phase < phase2.phase;
   }
 
   public String getPath()
