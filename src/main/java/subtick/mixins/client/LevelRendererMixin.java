@@ -73,7 +73,9 @@ import carpet.fakes.MinecraftClientInferface;
 public class LevelRendererMixin
 {
   @Shadow @Final private RenderBuffers renderBuffers;
+  //#if MC < 12103
   @Shadow @Nullable private PostChain entityEffect;
+  //#endif
   @Shadow @Final private Minecraft minecraft;
   @Unique private final ThreadLocal<Boolean> precessed = ThreadLocal.withInitial(() -> false);
 
@@ -88,7 +90,7 @@ public class LevelRendererMixin
           method = "renderLevel",
           //#endif
           //#if MC >= 12110
-          //$$ at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/util/function/Supplier;)V", args = "ldc=submitEntities")
+          //$$ at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher;renderAllFeatures()V")
           //#elseif MC >= 12108
           //$$ at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderEntities(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/Camera;Lnet/minecraft/client/DeltaTracker;Ljava/util/List;)V")
           //#else

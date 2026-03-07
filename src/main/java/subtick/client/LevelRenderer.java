@@ -201,7 +201,7 @@ public class LevelRenderer
 
       if (blockEntity != null) {
         BlockEntityRenderDispatcher blockEntityRenderDispatcher = mc.getBlockEntityRenderDispatcher();
-        blockEntityRenderDispatcher.render(blockEntity, 0.0f, poseStack, new InvisibleOutlineBufferSource(outlineBufferSource));
+        blockEntityRenderDispatcher.render(blockEntity, 1.0f, poseStack, new InvisibleOutlineBufferSource(outlineBufferSource));
       }
       if (state.getRenderShape() != RenderShape.MODEL) {
         poseStack.popPose();

@@ -23,7 +23,7 @@ public class BlockFeatureRendererMixin {
     ) {
         if (LevelRenderer.hlBe.containsKey(blockPos)) {
             OutlineBufferSource outlineBufferSource = Minecraft.getInstance().renderBuffers().outlineBufferSource();
-            outlineBufferSource.setColor(LevelRenderer.color.get());
+            outlineBufferSource.setColor(LevelRenderer.hlBe.get(blockPos));
             original.call(blockAndTintGetter, list, blockState, blockPos, poseStack, vertexConsumer, bl, i);
             outlineBufferSource.setColor(-1);
         }else {

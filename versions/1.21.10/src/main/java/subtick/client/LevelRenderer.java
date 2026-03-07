@@ -13,7 +13,6 @@ import net.minecraft.client.renderer.block.ModelBlockRenderer;
 import net.minecraft.client.renderer.block.MovingBlockRenderState;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.BlockStateModel;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
@@ -70,7 +69,6 @@ public class LevelRenderer
     private static final Minecraft mc = Minecraft.getInstance();
     private static final HashSet<Pos> hlPos = new HashSet<>();
     private static final HashSet<Text> texts = new HashSet<>();
-    public static ThreadLocal<Integer> color = ThreadLocal.withInitial(() -> 0);
     public static final HashMap<BlockPos,Integer> hlBe = new HashMap<>();
 
     public static synchronized void render(PoseStack poseStack, OutlineBufferSource outlineBufferSource, boolean renderText) {
@@ -233,11 +231,7 @@ public class LevelRenderer
             poseStack.translate(pos.getX() - cpos.x, pos.getY() - cpos.y, pos.getZ() - cpos.z);
 
             if (blockEntity != null) {//See BlockEntityRendererMixin
-                BlockEntityRenderDispatcher blockEntityRenderDispatcher = mc.getBlockEntityRenderDispatcher();
-                var renderer = blockEntityRenderDispatcher.getRenderer(blockEntity);
-                if (renderer != null) {
-                    hlBe.put(pos,color.intValue);
-                }
+                hlBe.put(pos, color.intValue);
             }
             if (state.getRenderShape() != RenderShape.MODEL) {
                 poseStack.popPose();
