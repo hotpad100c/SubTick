@@ -73,11 +73,7 @@ public class LevelRenderer
 
   public static synchronized void render(PoseStack poseStack, OutlineBufferSource outlineBufferSource, boolean renderText) {
     Camera camera = mc.gameRenderer.getMainCamera();
-    //#if MC >= 12111
-    //$$ Vec3 cpos = camera.position();
-    //#else
     Vec3 cpos = camera.getPosition();
-    //#endif
     if (!renderText && Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) {
       Map<Integer, List<Outline>> groupedOutlines = hlPos.stream()
               .filter(p -> p instanceof Outline)
@@ -94,6 +90,16 @@ public class LevelRenderer
       }
     } else {
       if (!Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) {
+        //#if MC < 12105
+        //#if MC >= 12103
+        //$$ RenderSystem.setShader(CoreShaders.POSITION_COLOR);
+        //#else
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        //#endif
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        //#endif
         BufferBuilder quadBuffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         for (Pos pos : hlPos) {
           pos.render(quadBuffer, poseStack, camera, outlineBufferSource, mc.level, false);
