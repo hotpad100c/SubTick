@@ -94,7 +94,7 @@ public class LevelRenderer
                 outlineBufferSource.setColor(-1);
             }
         } else {
-            if (!Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) {
+            if (!hlPos.isEmpty() && !Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) {
                 BufferBuilder quadBuffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
                 for (Pos pos : hlPos) {
                     pos.render(quadBuffer, poseStack, camera, levelRenderState, output, outlineBufferSource, mc.level, false);

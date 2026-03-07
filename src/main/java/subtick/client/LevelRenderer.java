@@ -68,7 +68,7 @@ public class LevelRenderer
         setOutlineColor(outlineBufferSource, -1);
       }
     } else {
-      if (!Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) {
+      if (!hlPos.isEmpty() && !Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) {
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         for (Pos pos : hlPos) {
           pos.render(buffer, poseStack, camera, outlineBufferSource, mc.level, false);

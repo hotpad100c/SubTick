@@ -89,7 +89,7 @@ public class LevelRenderer
         setOutlineColor(outlineBufferSource, -1);
       }
     } else {
-      if (!Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) {
+      if (!hlPos.isEmpty() && !Configs.EXPERIMENTAL_RENDERING.getBooleanValue()) {
         //#if MC < 12105
         //#if MC >= 12103
         //$$ RenderSystem.setShader(CoreShaders.POSITION_COLOR);
