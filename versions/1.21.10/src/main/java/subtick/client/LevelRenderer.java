@@ -172,9 +172,15 @@ public class LevelRenderer
         public void render(BufferBuilder buffer, PoseStack poseStack, Camera camera, LevelRenderState levelRenderState, SubmitNodeCollector output, OutlineBufferSource outlineBufferSource, Level level, boolean NEW)
         {
             if (!NEW) {
+                //#if MC >= 12111
+                //$$ double cx = camera.position().x;
+                //$$ double cy = camera.position().y;
+                //$$ double cz = camera.position().z;
+                //#else
                 double cx = camera.getPosition().x;
                 double cy = camera.getPosition().y;
                 double cz = camera.getPosition().z;
+                //#endif
                 double x1 = pos.getX();
                 double y1 = pos.getY();
                 double z1 = pos.getZ();
