@@ -178,6 +178,11 @@ public class LevelRendererMixin
           at = @At(value = "INVOKE", target = "Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;long2ObjectEntrySet()Lit/unimi/dsi/fastutil/objects/ObjectSet;")
   )
   //#endif
+  //#if MC >= 12103
+  //$$ private boolean forceEntityOutline2(boolean bl4) {
+  //$$   return subtick.client.LevelRenderer.hasOutline() || bl4;
+  //$$ }
+  //#else
   private void forceEntityOutline2(
           //#if MC >= 12101
           //$$ DeltaTracker deltaTracker, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci, @Local PoseStack poseStack
@@ -197,6 +202,7 @@ public class LevelRendererMixin
          precessed.set(false);
        }
   }
+  //#endif
   //#endif
 
 
