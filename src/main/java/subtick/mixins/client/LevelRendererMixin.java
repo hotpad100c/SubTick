@@ -75,7 +75,7 @@ public class LevelRendererMixin
   @Shadow @Final private RenderBuffers renderBuffers;
   @Shadow @Nullable private PostChain entityEffect;
   @Shadow @Final private Minecraft minecraft;
-  @Unique private ThreadLocal<Boolean> precessed = ThreadLocal.withInitial(() -> false);
+  @Unique private final ThreadLocal<Boolean> precessed = ThreadLocal.withInitial(() -> false);
 
   //#if MC >= 12109
   //$$ @Shadow @Final private SubmitNodeStorage submitNodeStorage;
@@ -230,7 +230,7 @@ public class LevelRendererMixin
   //#endif
 
   //#if MC < 12002
-  float initial = -1234.0f;
+  @Unique float initial = -1234.0f;
 
   @ModifyVariable(method = "renderLevel", argsOnly = true, require = 0, ordinal = 0, at = @At(
           value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;entitiesForRendering()Ljava/lang/Iterable;"

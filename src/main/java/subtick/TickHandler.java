@@ -198,7 +198,7 @@ public class TickHandler implements ITickHandler
     targetPhase = tickPhase;
     ServerNetworkHandler.sendFrozen(c.getLevel(), tickPhase);
     //#if MC >= 12003
-    //$$ if (serverTickRateManager == null)serverTickRateManager = new ServerTickRateManager(c.getServer());
+    //$$ if (serverTickRateManager == null) serverTickRateManager = new ServerTickRateManager(c.getServer());
     //$$ serverTickRateManager.setFrozen(true);
     //$$ c.getServer().getPlayerList().broadcastAll(ClientboundTickingStatePacket.from(serverTickRateManager));
     //#endif
@@ -210,7 +210,7 @@ public class TickHandler implements ITickHandler
   public int unfreeze(CommandSourceStack c)
   {
     //#if MC >= 12003
-    //$$ if (serverTickRateManager == null)serverTickRateManager = new ServerTickRateManager(c.getServer());
+    //$$ if (serverTickRateManager == null) serverTickRateManager = new ServerTickRateManager(c.getServer());
     //$$ serverTickRateManager.setFrozen(false);
     //$$ c.getServer().getPlayerList().broadcastAll(ClientboundTickingStatePacket.from(serverTickRateManager));
     //#endif
@@ -303,6 +303,10 @@ public class TickHandler implements ITickHandler
     if(ticks != 0 || !tickPhase.equals(currentPhase))
     {
       queues.scheduleEnd();
+      //#if MC >= 12003
+      //$$ if (serverTickRateManager == null) serverTickRateManager = new ServerTickRateManager(c.getServer());
+      //$$ serverTickRateManager.stepGameIfPaused(ticks);
+      //#endif
       ServerNetworkHandler.sendTickStep(c.getLevel(), ticks, tickPhase);
     }
     return Command.SINGLE_SUCCESS;
@@ -333,6 +337,10 @@ public class TickHandler implements ITickHandler
     if(ticks != 0 || !phase.equals(currentPhase))
     {
       queues.scheduleEnd();
+      //#if MC >= 12003
+      //$$ if (serverTickRateManager == null) serverTickRateManager = new ServerTickRateManager(c.getServer());
+      //$$ serverTickRateManager.stepGameIfPaused(ticks);
+      //#endif
       ServerNetworkHandler.sendTickStep(c.getLevel(), ticks, phase);
     }
     return Command.SINGLE_SUCCESS;
