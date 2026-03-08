@@ -7,7 +7,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.nbt.CompoundTag;
 import subtick.SubTick;
-//#if MC >= 12105
+//#if MC >= 12005
 //$$ import subtick.network.packet.SubTickPayload;
 //#endif
 
