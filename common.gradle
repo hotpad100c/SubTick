@@ -110,9 +110,6 @@ base.archivesName = project.archives_base_name + '-mc' + project.minecraft_versi
 
 processResources {
   inputs.property "version", fullModVersion
-
-  if (mcVersion == 12101) {
-
     filesMatching("fabric.mod.json") {
       def valueMap = [
               "version"             : fullModVersion,
@@ -121,17 +118,6 @@ processResources {
       ]
       expand valueMap
     }
-  } else {
-    filesMatching("fabric.mod.json") {
-      def valueMap = [
-              "version"             : fullModVersion,
-              "carpet_dependency"   : project.carpet_dependency,
-              "minecraft_dependency": project.minecraft_dependency,
-              "lithium_dependency"   : ">=1.13.1",
-      ]
-      expand valueMap
-    }
-  }
 
 
   filesMatching("subtick.mixins.json") {

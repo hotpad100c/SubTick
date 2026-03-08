@@ -4,15 +4,12 @@ import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import carpet.CarpetSettings;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import subtick.client.ClientNetworkHandler;
 import subtick.commands.TickCommand;
 import subtick.util.Translations;
 import subtick.commands.PhaseCommand;
@@ -50,7 +47,6 @@ public class SubTick implements CarpetExtension, ModInitializer
     //#if MC >= 12005
     //$$ PacketRegister.s2c();
     //#endif
-    registerNetworkPackReceiver();
   }
 
   @Override
@@ -100,30 +96,6 @@ public class SubTick implements CarpetExtension, ModInitializer
   //     TickPhase.ENTITY_MANAGEMENT
   //   };
   // }
-
-  private static void registerNetworkPackReceiver() {
-    ClientPlayNetworking.registerGlobalReceiver(
-            //#if MC < 12005
-            SUBTICK_PACKET_ID,
-            //#else
-            //$$ SubTickPayload.TYPE,
-            //#endif
-            //#if MC < 12005
-            (client, handler, buf, responseSender) -> {
-              CompoundTag tag = buf.readNbt();
-              client.execute(() -> {
-                  if (tag != null) {
-                      ClientNetworkHandler.handlePacket(tag, client.player);
-                  }
-              });
-            }
-            //#else
-            //$$ (payload, context) -> context.client().execute(() ->
-            //$$        ClientNetworkHandler.handlePacket(payload.tag(), context.client().player)
-            //$$ )
-            //#endif
-    );
-  }
 
   @Override
   public void onPlayerLoggedIn(ServerPlayer player) {
